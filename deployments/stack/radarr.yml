@@ -1,0 +1,204 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: radarr
+  labels:
+    app: radarr
+spec:
+  ports:
+  - port: 80
+    targetPort: 7878
+    name: radarr
+  selector:
+    app: radarr
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: radarr-downloads-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: radarr-downloads-pv
+    nodeStageSecretRef:
+      name: radarr-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: radarr-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /downloads
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: radarr-downloads-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: radarr-downloads-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: radarr-movies-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: radarr-movies-pv
+    nodeStageSecretRef:
+      name: radarr-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: radarr-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /movies
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: radarr-movies-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: radarr-movies-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: radarr-config-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: radarr-config-pv
+    nodeStageSecretRef:
+      name: radarr-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: radarr-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /docker/radarr
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: radarr-config-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: radarr-config-pv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: radarr
+  labels:
+    app: radarr
+spec:
+  selector:
+    matchLabels:
+      app: radarr # has to match .spec.template.metadata.labels
+  serviceName: "radarr"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: radarr # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: radarr
+        image: linuxserver/radarr:latest
+        imagePullPolicy: Always
+        env:
+        - name: TZ
+          value: America/Chicago
+        - name: PUID
+          value: '911'
+        - name: PGID
+          value: '911'
+        ports:
+        - containerPort: 7878
+          name: radarr
+        volumeMounts:
+        - name: radarr-config
+          mountPath: /config
+        - name: radarr-movies
+          mountPath: /movies
+        - name: radarr-downloads
+          mountPath: /downloads
+      volumes:
+      - name: radarr-config
+        persistentVolumeClaim:
+          claimName: radarr-config-pvc
+          readOnly: false
+      - name: radarr-movies
+        persistentVolumeClaim:
+          claimName: radarr-movies-pvc
+          readOnly: false
+      - name: radarr-downloads
+        persistentVolumeClaim:
+          claimName: radarr-downloads-pvc
+          readOnly: false
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: radarr
+  labels:
+    app: radarr
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: radarr.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: radarr
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - radarr.perihelion.host
+    secretName: radarr.perihelion.host

@@ -1,0 +1,37 @@
+#cloud-config
+autoinstall:
+    version: 1
+    locale: en_US.UTF-8
+    keyboard:
+        layout: en
+        variant: us
+    packages:
+      - qemu-guest-agent 
+    identity:
+        hostname: ubuntu-2004-template
+        username: ubuntu
+        password: '$6$M99ZKXcC/x6P0j$qb/GReviphjSFwqmWftWVSS5BUhnb2a4DmSt5azjBZYN8qyCICofYYis2AkJeHPvFBdSqaU/FGqQDnxyFHg3K.'
+    refresh-installer:
+      update: false
+    ssh:
+        install-server: yes
+        allow-pw: yes
+        authorized-keys:
+          - ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAgEAk5//FTG7J54ZFS2JtJFtz++Z6qro1Ldwz6cWlZKaEUbZL1AoLNsZcX23Qh4pKyuoA9NH6gqtFENrzPQGUK4sEsyUtFnY5MYnS1qogc8KYUhOFF4RsxYw+/EweYaa6HNvR3EJGXZx/35pjE7pH7ZBQfCkyUMU8yqt7d1UZgJNSM33GUJSpi8sBLQbEXkA3uHqgZBviV/hEBPJ0BE8+S0N5vjbla65Spyqlu4W7nGDfBV2TUI6S59zQ4Et/rsjSPdLtNo4AsnQfwVHs4Cc7fP9plUF7ApI68fAzxqobdOe/byGJ23HTu1sPUx9T4O62NrTJW17xaF0Z+s26iM0+GZVNw7kIPjKbwJfOH3kaKb4rD/IBcyg2h4EtwQ8ELVXzZ3+AgdmMnZsRc3l/vA8BbbCv7nUEHDWAqMZd+uB6kH7aLjz+QKgCSxue665UTzXUE4E4PiJQtACTZ4o6yqMn/wlVTDF2MmKcZjkLdbeLfU7NmMFTe2TCApbtt8whiiZ43pFUicuRq5yjb9cx9mk/GgetTl1/BO09zdYZcrKRFvbCGUc8bm/oVBK+TnG4JaYMX9medqqoWtPE383np4xzxxDvik7BI48m8b5h4yivBskAcAX4EHLM2tPE1b7jLNEqNpGbqk43RacojLf3X0nl19HQq3t2Hqo9DkAKTqBp5WW6vk= besmirzanaj-personal
+    storage:
+        layout:
+            name: lvm
+    apt:
+        preserve_sources_list: false
+        primary:
+            - arches: [i386, amd64]
+              uri: "http://archive.ubuntu.com/ubuntu"
+            - arches: [default]
+              uri: "http://ports.ubuntu.com/ubuntu-ports"
+        geoip: true
+    user-data:
+      disable_root: false
+    late-commands:
+      - sed -i -e 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g' /target/etc/ssh/sshd_config
+      - echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ubuntu
+      - curtin in-target --target=/target -- chmod 440 /etc/sudoers.d/ubuntu

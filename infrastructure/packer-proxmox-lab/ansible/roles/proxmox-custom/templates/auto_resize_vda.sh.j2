@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Use parted to extend root partition to available /dev/vda space
+# Ubuntu 20.04 is a bit wired as it is using new paths for LVM and GPT partitioning
+
+{% if ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "20" %}
+# Ubuntu 20.04 needs to fix the GPT partition table with the new disk size
+/usr/sbin/sgdisk -e /dev/vda
+{% endif %}
+END=$(/usr/sbin/parted /dev/vda print free  | grep Free | tail -1 | awk "{print \$2}")
+{% if ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "18" %}
+/usr/sbin/parted /dev/vda resizepart 1 $END
+/usr/sbin/pvresize /dev/vda1
+{% elif ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "20" %}
+/usr/sbin/parted /dev/vda resizepart 3 $END
+/usr/sbin/pvresize /dev/vda3
+{% elif ansible_facts['os_family'] == "RedHat" %}
+/usr/sbin/parted /dev/vda resizepart 2 $END
+/usr/sbin/pvresize /dev/vda2
+{% endif %}
+{% if ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "20" %}
+VGROUP=$(mount | grep ubuntu | awk "{ print \$1 }")
+{% else %}
+VGROUP=$(mount | grep root | awk "{ print \$1 }")
+{% endif %}
+/usr/sbin/lvextend -l +100%FREE -r $VGROUP

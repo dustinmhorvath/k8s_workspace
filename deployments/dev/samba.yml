@@ -1,0 +1,92 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: samba
+  labels:
+    app: samba
+spec:
+  ports:
+  - port: 445
+    targetPort: 445
+    name: samba
+  - port: 139
+    targetPort: 139
+    name: nmbd
+  selector:
+    app: samba
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: samba
+  labels:
+    app: samba
+spec:
+  selector:
+    matchLabels:
+      app: samba # has to match .spec.template.metadata.labels
+  serviceName: "samba"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: samba # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: samba
+        image: dperson/samba:latest
+        env:
+        - name: TZ
+          value: America/Chicago
+        - name: NMBD
+        - name: SHARE1
+          value: "backup;/backup;yes;no;no;dustin"
+        - name: SHARE2
+          value: "storage;/storage;yes;yes;yes;dustin;dustin"
+        - name: USER
+          value: "dustin;ironclad0"
+        - name: PERMISSIONS
+
+        ports:
+        - containerPort: 445
+          name: samba
+          hostPort: 445
+        - containerPort: 139
+          name: nmbd1
+          hostPort: 139
+        - containerPort: 138
+          name: nmbd2
+          hostPort: 138
+          protocol: UDP
+        - containerPort: 137
+          name: nmbd3
+          hostPort: 137
+          protocol: UDP
+        volumeMounts:
+        - name: ceph-backup
+          mountPath: /backup
+        - name: ceph-storage
+          mountPath: /storage
+      volumes:
+      - name: ceph-backup
+        cephfs:
+          monitors:
+            - 192.168.1.131:6789
+            - 192.168.1.132:6789
+          user: samba
+          path: /backup
+          secretRef:
+            name: samba-ceph
+          readOnly: false
+      - name: ceph-storage
+        cephfs:
+          monitors:
+            - 192.168.1.131:6789
+            - 192.168.1.132:6789
+          user: samba
+          path: /storage
+          secretRef:
+            name: samba-ceph
+          readOnly: false

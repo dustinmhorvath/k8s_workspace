@@ -1,0 +1,18 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-ingress-nginx
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    controller:
+      kind: DaemonSet
+      daemonset:
+        useHostPort: true
+      config:
+        use-forwarded-headers: "true"
+      image:
+        # Idk why, but this gets all fucky and crashloops on latest
+        repository: us.gcr.io/k8s-artifacts-prod/ingress-nginx/controller
+        tag: "v0.51.0"

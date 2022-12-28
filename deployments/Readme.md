@@ -1,0 +1,1 @@
+This section is designed so that I can do a 'kubectl apply -f ./stack/' and do everything in one go. 'prereq' has a yaml file full of Ceph secrets, that I'm going to remove for now so it's not committed.

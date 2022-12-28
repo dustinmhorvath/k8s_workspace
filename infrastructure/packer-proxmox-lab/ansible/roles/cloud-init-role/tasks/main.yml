@@ -1,0 +1,31 @@
+---
+- name: install cloud-init package
+  package:
+    name: "{{ cloud_init_package_name }}"
+    state: "{{ cloud_init_package_state }}"
+
+# need to specify exact datasource type in Ubuntu 20.04
+# https://www.reddit.com/r/Proxmox/comments/ppmg4f/comment/hd6wbpi/?utm_source=share&utm_medium=web2x&context=3
+# - name: Template the datasource file for cloud init in Ubuntu 20.04
+#   template:
+#     src: 01_ds-identify.cfg.j2
+#     dest: /etc/cloud/cloud.cfg.d/01_ds-identify.cfg
+#     owner: root
+#     group: root
+#     mode: '0644'
+#   when: (ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "20")
+
+# Apparently bugs are features now
+# https://bugs.launchpad.net/ubuntu/+source/cloud-init/+bug/1871975
+- name: delete specific file that does not allow 
+  file:
+    path: /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg
+    state: absent
+  when: (ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "20")
+
+- name: need to specify exact datasource type in Ubuntu 20.04
+  lineinfile:
+    path: /etc/cloud/cloud.cfg.d/99-installer.cfg
+    regexp: '^datasource_list'
+    line: 'datasource_list: [ NoCloud, None ]'
+  when: (ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "20")

@@ -1,0 +1,74 @@
+{
+    "builders": [
+        {
+          "type": "proxmox-iso",
+          "vm_id": "223",
+          "node": "{{ user `proxmox-node`}}",
+          "proxmox_url": "{{ user `proxmox-url`}}",
+          "username": "{{ user `proxmox-username`}}",
+          "password": "{{ user `proxmox-password`}}",
+          "iso_file": "{{ user `iso_url` }}",
+          "iso_checksum": "sha256:{{ user `checksum` }}",
+          "insecure_skip_tls_verify": "true",
+          "vm_name": "{{ user `vm-name` }}",
+          "cores": "{{ user `vm-cpu-num` }}",
+          "memory": "{{ user `vm-mem-size` }}",
+          "os": "l26",
+          "machine": "q35",
+          "boot_command": [
+            "<esc><wait>",
+            "linux text inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/rocky8.ks<enter>"
+          ],
+          "http_directory": "kickstarts",
+
+          "disks":
+          [
+            {
+              "type": "virtio",
+              "disk_size": "{{ user `vm-disk-size` }}",
+              "storage_pool": "vm-pool",
+              "storage_pool_type": "lvm-thin",
+              "format": "raw"
+            }
+          ],
+          "scsi_controller": "pvscsi",
+          "network_adapters":
+            [
+              {
+                "model": "virtio",
+                "bridge": "vmbr0",
+                "firewall": false
+              }
+            ],
+          "ssh_password": "{{ user `ssh-password` }}",
+          "ssh_username": "root",
+          "unmount_iso": "true",
+          "template_name": "{{ user `vm-name` }}",
+          "template_description": "Proxmox Rocky Linux 8 packer image - built on {{isotime \"20060102-150405\"}}",
+          "qemu_agent": "true",
+          "ssh_timeout": "90m",
+          "cloud_init": "true",
+          "cloud_init_storage_pool": "vm-pool"
+        }
+      ],
+      "provisioners": [
+        {
+          "type": "ansible",
+          "playbook_file": "./ansible/playbook.yml"
+        },
+        {
+          "type": "shell",
+          "inline": [
+            "echo '{{ user `vm-name` }} -- Packer Build Complete'"
+          ]
+        }
+    ],
+
+    "variables": {
+      "iso_url": "local:iso/Rocky-8.6-x86_64-dvd1.iso",
+      "vm-cpu-num": "4",
+      "vm-disk-size": "30G",
+      "vm-mem-size": "4096",
+      "vm-name": "rocky-8-template"
+    }
+  }

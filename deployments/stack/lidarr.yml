@@ -1,0 +1,205 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lidarr
+  labels:
+    app: lidarr
+spec:
+  ports:
+  - port: 80
+    targetPort: 8686
+    name: lidarr
+  selector:
+    app: lidarr
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: lidarr-downloads-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: lidarr-downloads-pv
+    nodeStageSecretRef:
+      name: lidarr-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: lidarr-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /downloads
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lidarr-downloads-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: lidarr-downloads-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: lidarr-music-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: lidarr-music-pv
+    nodeStageSecretRef:
+      name: lidarr-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: lidarr-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /music
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lidarr-music-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: lidarr-music-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: lidarr-config-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: lidarr-config-pv
+    nodeStageSecretRef:
+      name: lidarr-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: lidarr-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /docker/lidarr
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lidarr-config-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: lidarr-config-pv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lidarr
+  labels:
+    app: lidarr
+spec:
+  selector:
+    matchLabels:
+      app: lidarr # has to match .spec.template.metadata.labels
+  serviceName: "lidarr"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: lidarr # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: lidarr
+        image: linuxserver/lidarr:latest
+        imagePullPolicy: Always
+        env:
+        - name: TZ
+          value: America/Chicago
+        - name: PUID
+          value: '911'
+        - name: PGID
+          value: '911'
+        ports:
+        - containerPort: 8686
+          name: lidarr
+        volumeMounts:
+        - name: lidarr-config
+          mountPath: /config
+        - name: lidarr-music
+          mountPath: /music
+        - name: lidarr-downloads
+          mountPath: /downloads
+      volumes:
+      - name: lidarr-config
+        persistentVolumeClaim:
+          claimName: lidarr-config-pvc
+          readOnly: false
+      - name: lidarr-music
+        persistentVolumeClaim:
+          claimName: lidarr-music-pvc
+          readOnly: false
+      - name: lidarr-downloads
+        persistentVolumeClaim:
+          claimName: lidarr-downloads-pvc
+          readOnly: false
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lidarr
+  labels:
+    app: lidarr
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  rules:
+  - host: lidarr.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: lidarr
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - lidarr.perihelion.host
+    secretName: lidarr.perihelion.host

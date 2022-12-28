@@ -1,0 +1,88 @@
+
+{
+  "builders": [
+    {
+      "type": "proxmox-iso",
+      "vm_id": "222",
+      "node": "{{ user `proxmox-node`}}",
+      "proxmox_url": "{{ user `proxmox-url`}}",
+      "username": "{{ user `proxmox-username`}}",
+      "password": "{{user `proxmox-password`}}",
+      "iso_file": "{{ user `iso_url` }}",
+      "iso_checksum": "sha256:{{ user `checksum` }}",
+      "insecure_skip_tls_verify": "true",
+      "vm_name": "{{ user `vm-name` }}",
+      "cores": "{{ user `vm-cpu-num` }}",
+      "memory": "{{ user `vm-mem-size` }}",
+      "os": "l26",
+      "network_adapters":
+        [
+          {
+            "model": "virtio",
+            "bridge": "vmbr1",
+            "firewall": false
+          }
+        ],
+        "boot_command": [
+          "<enter><wait><f6><wait><esc><wait>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs>",
+          "/install/vmlinuz",
+          " initrd=/install/initrd.gz",
+          " priority=critical",
+          " locale=en_US",
+          " preseed/url=http://ks.cloudalbania.com/preseed_1804.cfg ",
+          "<enter>"
+      ],
+      "disks":
+      [
+        {
+          "type": "virtio",
+          "disk_size": "{{ user `vm-disk-size` }}",
+          "storage_pool": "synology",
+          "storage_pool_type": "lvm-thin",
+          "format": "raw"
+        }
+      ],
+      "scsi_controller": "pvscsi",
+      "unmount_iso": "true",
+      "template_name": "{{ user `vm-name` }}",
+      "template_description": "Proxmox Ubuntu 18.04 packer image - built on {{isotime \"20060102-150405\"}}",
+      "qemu_agent": "true",
+      "ssh_password": "{{ user `ssh-password` }}",
+      "ssh_username": "root",
+      "ssh_timeout": "90m",
+      "cloud_init": "true",
+      "cloud_init_storage_pool": "synology"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "./ansible/playbook.yml"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "echo '{{ user `vm-name` }} -- Packer Build Complete'",
+        "logger 'this packer template was built on $(date)'"
+      ]
+    }
+  ],
+
+  "variables": {
+    "iso_checksum": "8c5fc24894394035402f66f3824beb7234b757dd2b5531379cb310cedfdf0996",
+    "iso_url": "local:iso/ubuntu-18.04.5-server-amd64.iso",
+    "vm-cpu-num": "2",
+    "vm-disk-size": "5G",
+    "vm-mem-size": "2048",
+    "vm-name": "ubuntu-1804-template"
+  }
+}

@@ -1,0 +1,99 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: readarr
+  labels:
+    app: readarr
+spec:
+  ports:
+  - port: 80
+    targetPort: 8787
+    name: readarr
+  selector:
+    app: readarr
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: readarr
+spec:
+  selector:
+    matchLabels:
+      app: readarr # has to match .spec.template.metadata.labels
+  serviceName: "readarr"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: readarr # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: readarr
+        image: linuxserver/readarr:develop
+        ports:
+        - containerPort: 8787
+          name: readarr
+        volumeMounts:
+        - name: ceph-readarr
+          mountPath: /config
+        - name: ceph-books
+          mountPath: /books
+        - name: ceph-downloads
+          mountPath: /downloads
+      volumes:
+      - name: ceph-readarr
+        cephfs:
+          monitors:
+            - 192.168.1.131:6789
+            - 192.168.1.132:6789
+          user: readarr
+          path: /docker/readarr
+          secretRef:
+            name: readarr-ceph
+          readOnly: false
+      - name: ceph-books
+        cephfs:
+          monitors:
+            - 192.168.1.131:6789
+            - 192.168.1.132:6789
+          user: readarr
+          path: /books
+          secretRef:
+            name: readarr-ceph
+          readOnly: false
+      - name: ceph-downloads
+        cephfs:
+          monitors:
+            - 192.168.1.131:6789
+            - 192.168.1.132:6789
+          user: readarr
+          path: /downloads
+          secretRef:
+            name: readarr-ceph
+          readOnly: false
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: readarr
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: readarr.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: readarr
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - readarr.perihelion.host
+    secretName: readarr.perihelion.host

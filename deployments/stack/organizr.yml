@@ -1,0 +1,122 @@
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: organizr
+  labels:
+    app: organizr
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    name: organizr
+  selector:
+    app: organizr
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: organizr-config-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: organizr-config-pv
+    nodeStageSecretRef:
+      name: docker-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: docker-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /docker/organizr
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: organizr-config-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: organizr-config-pv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: organizr
+  labels:
+    app: organizr
+spec:
+  selector:
+    matchLabels:
+      app: organizr # has to match .spec.template.metadata.labels
+  serviceName: "organizr"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: organizr # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: organizr
+        image: organizr/organizr:latest
+        imagePullPolicy: Always
+        env:
+        - name: TZ
+          value: America/Chicago
+        - name: PUID
+          value: '911'
+        - name: PGID
+          value: '911'
+        - name: fpm
+          value: "true"
+        ports:
+        - containerPort: 80
+          name: organizr
+        volumeMounts:
+        - name: organizr-config
+          mountPath: /config
+      volumes:
+      - name: organizr-config
+        persistentVolumeClaim:
+          claimName: organizr-config-pvc
+          readOnly: false
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: organizr
+  labels:
+    app: organizr
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  rules:
+  - host: organizr.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: organizr
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - organizr.perihelion.host
+    secretName: organizr.perihelion.host

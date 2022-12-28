@@ -1,0 +1,8 @@
+- name: Apply CentOS and RHEL 7 templates configuration
+  hosts: default
+#  remote_user: root
+  gather_facts: true
+  become: yes
+  roles:
+    - cloud-init-role
+    - proxmox-custom

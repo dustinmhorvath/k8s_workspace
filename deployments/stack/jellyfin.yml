@@ -1,0 +1,248 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  ports:
+  - port: 80
+    targetPort: jellyfin
+    name: jellyfin
+  selector:
+    app: jellyfin
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-movies-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: jellyfin-movies-pv
+    nodeStageSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /movies
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-movies-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: jellyfin-movies-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-tv-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: jellyfin-tv-pv
+    nodeStageSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /tv
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-tv-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: jellyfin-tv-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-music-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: jellyfin-music-pv
+    nodeStageSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /music
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-music-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: jellyfin-music-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-config-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: jellyfin-config-pv
+    nodeStageSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /docker/jellyfin
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: jellyfin-config-pv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  selector:
+    matchLabels:
+      app: jellyfin # has to match .spec.template.metadata.labels
+  serviceName: "jellyfin"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: jellyfin # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: jellyfin
+        image: linuxserver/jellyfin:latest
+        env:
+        - name: TZ
+          value: America/Chicago
+        - name: PUID
+          value: "911"
+        - name: PGID
+          value: "911"
+
+        ports:
+        - containerPort: 8096
+          name: jellyfin
+        volumeMounts:
+        - name: jellyfin-config
+          mountPath: /config
+        - name: jellyfin-movies
+          mountPath: /movies
+        - name: jellyfin-tv
+          mountPath: /tvshows
+        - name: jellyfin-music
+          mountPath: /music
+      volumes:
+      - name: jellyfin-config
+        persistentVolumeClaim:
+          claimName: jellyfin-config-pvc
+          readOnly: false
+      - name: jellyfin-movies
+        persistentVolumeClaim:
+          claimName: jellyfin-movies-pvc
+          readOnly: false
+      - name: jellyfin-tv
+        persistentVolumeClaim:
+          claimName: jellyfin-tv-pvc
+          readOnly: false
+      - name: jellyfin-music
+        persistentVolumeClaim:
+          claimName: jellyfin-music-pvc
+          readOnly: false
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jellyfin
+  labels:
+    app: jellyfin
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  rules:
+  - host: media.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: jellyfin
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - media.perihelion.host
+    secretName: media.perihelion.host

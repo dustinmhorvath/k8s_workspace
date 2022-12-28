@@ -1,0 +1,276 @@
+---
+- hosts: k8s
+  become: yes
+  max_fail_percentage: 01
+  vars:
+    kubeconfig_remote: /etc/rancher/rke2/rke2.yaml
+    # Get first entry in group "master_primary"
+    primary: "{{ groups['master_primary'][0] }}"
+    tls_name: rancher.perihelion.host
+  environment:
+    PATH: "$PATH:/usr/local/bin/:/usr/bin/"
+  tasks:
+    - service:
+        name: firewalld
+        state: stopped
+        enabled: no 
+    - name: Create rke2 path
+      file:
+        path: /etc/rancher/rke2/
+        state: directory
+
+    - name: Enable module
+      shell: yum module enable container-tools:rhel8 -y
+
+    - name: Replace a localhost entry with our own
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.conf
+        regexp: '^net.bridge.bridge-nf-call-iptables'
+        line: 'net.bridge.bridge-nf-call-iptables=1'
+
+    - name: Write repository
+      copy:
+        src: rke2_repo.conf
+        dest: /etc/yum.repos.d/rancher-rke2.repo
+    - name: Install rke2 and dependencies
+      yum:
+        name:
+          - rke2-server
+          - python3-pip
+          - tar
+        state: present
+
+#    - name: Install rke2 with script
+#      shell: 'curl -sfL https://get.rke2.io | sh -'
+
+    - name: Start primary master
+      block:
+      - name: install pre-requisites
+        pip:
+          name:
+            - openshift
+            - pyyaml
+            - kubernetes 
+      - name: Write config file on primary master
+        ansible.builtin.blockinfile:
+          create: yes
+          path: /etc/rancher/rke2/config.yaml
+          block: |
+            token: jgjurnghjenvugbnsk
+            tls-san:
+              - {{ tls_name }}
+      - name: Start primary master services
+        service:
+          name: rke2-server
+          state: started
+          enabled: yes
+      - name: Wait for node to be up
+        ansible.builtin.shell: '/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes | grep $HOSTNAME | grep -v "NotReady"'
+        register: get_nodes_output
+        retries: 10
+        delay: 30
+        until: get_nodes_output is not failed
+      - name: Get the primary master token
+        shell: cat /var/lib/rancher/rke2/server/node-token | grep server
+        register: primary_token
+
+      ##### kubeconfig stuff
+      - name: Copy kubeconfig to remote ~/.kube/
+        copy:
+          remote_src: yes
+          src: "{{ kubeconfig_remote }}"
+          dest: "~/.kube/config"
+          mode: 0600
+      - name: Fetch kubeconfig to local
+        fetch:
+          src: "~/.kube/config"
+          dest: "~/.kube/config"
+          flat: yes
+      - name: replace host ip address in the kubeconfig
+        delegate_to: localhost
+        replace:
+          path: ~/.kube/config
+          regexp: "https://127.0.0.1:6443"
+          replace: "https://{{ primary }}:6443"
+
+
+      - name: check if helm is installed /usr/local/bin/helm
+        stat:
+          #path: $HOME/.config/helm/repositories.yaml
+          path: /usr/local/bin/helm
+        register: helm_check
+      - name: Download get-helm-3
+        get_url:
+          url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          dest: ~/get-helm-3.sh
+          mode: "700"
+        when: not helm_check.stat.exists
+      - name: install helm if not exist
+        command: >-
+          ~/get-helm-3.sh
+        when: not helm_check.stat.exists
+      when: "'master_primary' in group_names"
+
+    - name: Start secondary masters
+      block:
+      - name: Write config files on secondary masters
+        ansible.builtin.blockinfile:
+          create: yes
+          path: /etc/rancher/rke2/config.yaml
+          block: |
+            server: https://{{ primary }}:9345/
+            token: {{ hostvars[primary].primary_token.stdout }}
+            tls-san:
+              - {{ tls_name }}
+      - name: Start secondary master services
+        service:
+          name: rke2-server
+          state: started
+          enabled: yes
+        async: 600
+        poll: 15
+      when: "'master_primary' not in group_names"
+
+- hosts: master_primary
+  max_fail_percentage: 01
+  become: yes
+  environment:
+    PATH: "$PATH:/usr/local/bin/:/usr/bin/"
+  vars:
+    kubeconfig_remote: /etc/rancher/rke2/rke2.yaml
+  tasks:
+    - name: Create manifest temp path
+      file:
+        path: ~/manifests/
+        state: directory
+    - name: Copy nginx daemonset config
+      copy:
+        src: nginx_daemonset.yml
+        dest: /var/lib/rancher/rke2/server/manifests/rke2-ingress-nginx-config.yaml
+
+    - name: Add helm repositories
+      kubernetes.core.helm_repository:
+        name: "{{ item.name }}"
+        repo_url: "{{ item.url }}"
+      register: derp
+      loop:
+        - name: rancher-latest
+          url: 'https://releases.rancher.com/server-charts/latest'
+        - name: jetstack
+          url: 'https://charts.jetstack.io'
+        - name: nfs-subdir-external-provisioner
+          url: 'https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/'
+        - name: rancher-charts
+          url: 'https://charts.rancher.io'
+        - name: metallb
+          url: 'https://metallb.github.io/metallb'
+
+#
+#    - name: create some secrets
+#      shell: |
+#        ## these files have to be named tls.crt/tls.key/cacerts.pem. you can use symlinks though
+#        kubectl -n cattle-system create secret tls tls-rancher-ingress --cert=/root/ssl/tls.crt --key=/root/ssl/tls.key
+#        kubectl -n cattle-system create secret generic tls-ca --from-file=/root/ssl/cacerts.pem
+#      ignore_errors: yes
+
+    - name: Get manifests
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "~/manifests/{{ item.dest }}"
+      loop:
+        - url: 'https://github.com/jetstack/cert-manager/releases/download/v1.5.1/cert-manager.crds.yaml'
+          dest: 'cert-manager.crds.yaml'
+
+    - name: Apply cert-manager CRDs
+      kubernetes.core.k8s:
+        src: ~/manifests/cert-manager.crds.yaml
+
+    - name: Deploy cert-manager
+      kubernetes.core.helm:
+        name: cert-manager
+        chart_ref: jetstack/cert-manager
+        chart_version: v1.5.1
+        release_namespace: cert-manager
+        create_namespace: true
+        #wait: True
+        replace: True
+        update_repo_cache: True
+      ignore_errors: yes
+
+    - name: Apply cert-manager config
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', '00_letsencrypt_nginx.yml') | from_yaml }}"
+        state: present
+        apply: yes
+
+    - name: Deploy metallb
+      kubernetes.core.helm:
+        name: metallb
+        chart_ref: metallb/metallb
+        #chart_version: v0.12.1
+        release_namespace: metallb-system
+        create_namespace: true
+        #wait: True
+        replace: True
+        update_repo_cache: True
+      ignore_errors: yes
+      # Create metallb configmap
+    - name: Create configmap
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', 'metallb_ipaddresspool.yml') | from_yaml }}"
+        state: present
+        apply: yes
+
+#    - name: Deploy Rancher
+#      kubernetes.core.helm:
+#        name: rancher
+#        chart_ref: rancher-latest/rancher
+#        chart_version: 2.6.6
+#        release_namespace: cattle-system
+#        create_namespace: true
+#        wait: True
+#        replace: True
+#        update_repo_cache: True
+#        values:
+#          hostname: k8s.ku.edu
+#          privateCA: true
+#          ingress:
+#            tls:
+#              source: secret
+#          bootstrapPassword: SomePasswordHere
+#      # Ignoring errors, since, this doesn't really do "upgrades" correctly like the command line `helm upgrade` does.
+#      ignore_errors: yes
+#          #tls: external 
+#      ## You can reset the admin password like this:
+#      ## kubectl -n cattle-system exec $(kubectl -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password
+#
+#    - name: Deploy Rancher-backup CRDs
+#      kubernetes.core.helm:
+#        name: rancher-backup-crd
+#        chart_ref: rancher-charts/rancher-backup-crd
+#        release_namespace: cattle-resources-system
+#        create_namespace: true
+#        wait: True
+#        replace: True
+#        update_repo_cache: True
+#
+#    - name: Deploy Rancher backup operator
+#      kubernetes.core.helm:
+#        name: rancher-backup
+#        chart_ref: rancher-charts/rancher-backup
+#        release_namespace: cattle-resources-system
+#        create_namespace: true
+#        wait: True
+#        replace: True
+#        update_repo_cache: True
+#        values:
+#          persistence:
+#            enabled: true
+#            storageClass: nfs-client
+#            size: 2Gi
+#
+#    - name: Create rancher backer schedule
+#      kubernetes.core.k8s:
+#        definition: "{{ lookup('file', 'rancher_backup_schedule.yaml') | from_yaml }}"
+#        state: present
+#        apply: yes

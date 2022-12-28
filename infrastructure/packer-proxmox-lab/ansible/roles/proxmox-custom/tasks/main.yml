@@ -1,0 +1,67 @@
+---
+- name: Run some shell commands
+  shell: |
+    sed -i 's/^#\?.*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+    sed -i 's/\(disable_root: \).*/\10/' /etc/cloud/cloud.cfg
+    sed -i 's/\(ssh_pwauth: \).*/\11/' /etc/cloud/cloud.cfg
+
+- name: Copy disk resize script needed by proxmox
+  template:
+    src: "auto_resize_vda.sh.j2"
+    dest: "/etc/auto_resize_vda.sh"
+    owner: root
+    group: root
+    mode: '0755'
+
+
+- name: Install packages - Debian
+  package:
+    name: "{{ packages.debian_install }}"
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install packages - RedHat
+  package:
+    name: "{{ packages.redhat_install }}"
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Remove packages - Debian
+  package:
+    name: "{{ packages.debian_remove }}"
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Remove packages - RedHat
+  package:
+    name: "{{ packages.redhat_remove }}"
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Update all packages - Debian
+  apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Update all packages - RedHat
+  yum:
+    name: "*"
+    state: latest
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: unlock ubuntu user in Ubuntu 20.04. it is locked from cloud-init
+  user: 
+    name: "ubuntu"
+    password_lock: false
+  when: (ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "20")
+
+- name: Start and enable services
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  when: ansible_os_family == "RedHat"
+  with_items:
+    - iptables

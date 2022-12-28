@@ -1,0 +1,35 @@
+---
+
+cloud_init_package_name: "cloud-init"
+cloud_init_package_state: "present"
+
+packages: 
+  redhat_install:
+    - tar
+    - telnet
+    - tcptraceroute
+    - zip
+    - unzip
+    - bzip2
+    - vim
+    - nano
+    - curl
+    - wget
+    - strace
+    - iptables-service
+    - open-vm-tools
+  redhat_remove:
+    - iwl*
+  debian_install:
+    - tar
+    - telnet
+    - tcptraceroute
+    - zip
+    - unzip
+    - bzip2
+    - vim
+    - nano
+    - curl
+    - wget
+    - strace
+  debian_remove: []
