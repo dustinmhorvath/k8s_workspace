@@ -12,7 +12,8 @@ spec:
         useHostPort: true
       config:
         use-forwarded-headers: "true"
-      image:
-        # Idk why, but this gets all fucky and crashloops on latest
-        repository: us.gcr.io/k8s-artifacts-prod/ingress-nginx/controller
-        tag: "v0.51.0"
+       # This seems like maybe the latest version is working now
+#      image:
+#        # Idk why, but this gets all fucky and crashloops on latest
+#        repository: us.gcr.io/k8s-artifacts-prod/ingress-nginx/controller
+#        tag: "v0.51.0"
