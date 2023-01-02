@@ -7,12 +7,3 @@ metadata:
 spec:
   addresses:
   - 192.168.1.210-192.168.1.220
----
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-  name: l2adv
-  namespace: metallb-system
-spec:
-  ipAddressPools:
-  - primary-pool

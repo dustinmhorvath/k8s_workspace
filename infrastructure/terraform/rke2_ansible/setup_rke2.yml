@@ -199,9 +199,12 @@
 
     - name: Apply cert-manager config
       kubernetes.core.k8s:
-        definition: "{{ lookup('file', '00_letsencrypt_nginx.yml') | from_yaml }}"
+        definition: "{{ lookup('file', item ) | from_yaml }}"
         state: present
         apply: yes
+      loop:
+        - 00_letsencrypt_nginx_prod.yml
+        - 00_letsencrypt_nginx.yml
 
     - name: Deploy metallb
       kubernetes.core.helm:
@@ -217,9 +220,12 @@
       # Create metallb configmap
     - name: Create configmap
       kubernetes.core.k8s:
-        definition: "{{ lookup('file', 'metallb_ipaddresspool.yml') | from_yaml }}"
+        definition: "{{ lookup('file', item ) | from_yaml }}"
         state: present
         apply: yes
+      loop:
+        - metallb_l2adv.yaml
+        - metallb_ipaddresspool.yml
 
 #    - name: Deploy Rancher
 #      kubernetes.core.helm:
