@@ -16,6 +16,30 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
+  name: jellyfin-books-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: jellyfin-books-pv
+    nodeStageSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /books
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
   name: jellyfin-movies-pv
 spec:
   storageClassName: local-path
@@ -36,6 +60,19 @@ spec:
       monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
       rootPath: /movies
       provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-books-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: jellyfin-books-pv
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -198,6 +235,8 @@ spec:
           mountPath: /config
         - name: jellyfin-movies
           mountPath: /movies
+        - name: jellyfin-books
+          mountPath: /books
         - name: jellyfin-tv
           mountPath: /tvshows
         - name: jellyfin-music
@@ -210,6 +249,10 @@ spec:
       - name: jellyfin-movies
         persistentVolumeClaim:
           claimName: jellyfin-movies-pvc
+          readOnly: false
+      - name: jellyfin-books
+        persistentVolumeClaim:
+          claimName: jellyfin-books-pvc
           readOnly: false
       - name: jellyfin-tv
         persistentVolumeClaim:
