@@ -10,6 +10,19 @@
   environment:
     PATH: "$PATH:/usr/local/bin/:/usr/bin/"
   tasks:
+    - name: Fix disk size
+      shell: '{{ item }}'
+      loop:
+        - '/usr/sbin/parted -s -a opt /dev/vda "print free" "resizepart 2 100%" "print free"'
+        - '/sbin/pvresize /dev/vda2'
+
+    - name: Create a logical volume of 512g.
+      community.general.lvol:
+        vg: local
+        lv: var
+        size: 25g
+        resizefs: true
+
     - service:
         name: firewalld
         state: stopped
