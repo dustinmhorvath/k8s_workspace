@@ -1,0 +1,1 @@
+terraform -chdir=terraform/ apply
