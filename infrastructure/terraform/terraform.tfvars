@@ -35,8 +35,6 @@ extend_root_disk_script = [
 
 k8s_source_template = "rocky-8-template"
 
-ssh_pub_key = "lkjhdlkjhaglkjhadglkajhlkj"
-
 ssh_user = "root"
 ssh_password = "somepassword"
 
