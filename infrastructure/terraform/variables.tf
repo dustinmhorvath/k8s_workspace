@@ -8,11 +8,6 @@ variable "ssh_user" {
   type        = string
 }
 
-variable "ssh_pub_key" {
-  description = "users public key"
-  type        = string
-}
-
 variable "k8s_masters" {
   description = "vm variables in a dictionary "
   type        = map(any)

@@ -16,7 +16,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
   disk {
     size    = each.value.disk_size
     type    = "virtio"
-    storage = "vm-pool"
+    storage = "local-lvm"
   }
   network {
     model  = "virtio"
@@ -26,7 +26,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
   # Cloud-init section
   ipconfig0 = "ip=${each.value.ip}/24,gw=${each.value.gw}"
   ssh_user  = var.ssh_user
-#  sshkeys   = var.ssh_pub_key
+  #sshkeys   = file("/root/keys/id_rsa")
 
   # Post creation actions
   provisioner "remote-exec" {
@@ -35,9 +35,12 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
       type        = "ssh"
       user        = var.ssh_user
       password    = var.ssh_password
-#      private_key = file("~/.ssh/id_rsa")
+      private_key = file("/root/keys/id_rsa")
       host        = each.value.ip
     }
+  }
+  provisioner "local-exec" {
+    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/keys/id_rsa ${path.root}/rke2_ansible/setup_rke2.yml -i rke2_ansible/inventory"
   }
 }
 
@@ -59,7 +62,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
   disk {
     size    = each.value.disk_size
     type    = "virtio"
-    storage = "vm-pool"
+    storage = "local-lvm"
   }
   network {
     model  = "virtio"
@@ -69,7 +72,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
   # Cloud-init section
   ipconfig0 = "ip=${each.value.ip}/24,gw=${each.value.gw}"
   ssh_user  = var.ssh_user
-#  sshkeys   = var.ssh_pub_key
+  #sshkeys   = file("/root/keys/id_rsa")
 
   # Post creation actions
   provisioner "remote-exec" {
@@ -78,13 +81,11 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
       type        = "ssh"
       user        = var.ssh_user
       password    = var.ssh_password
-#      private_key = file("~/.ssh/id_rsa")
+      private_key = file("/root/keys/id_rsa")
       host        = each.value.ip
     }
   }
-#  provisioner "local-exec" {
-#    #command = "cp -rfp kubespray/inventory/sample/ kubespray/inventory/mycluster"
-#    # //build the inventory file here somehow, from terraform vars
-#    #command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root -i kubespray/inventory/mycluster/inventory.ini --become --become-user=root kubespray/cluster.yml"
-#  }
+  provisioner "local-exec" {
+    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/keys/id_rsa ${path.root}/rke2_ansible/setup_rke2.yml -i rke2_ansible/inventory"
+  }
 }
