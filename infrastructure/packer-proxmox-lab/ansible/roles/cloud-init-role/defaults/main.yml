@@ -1,4 +1,0 @@
----
-
-cloud_init_package_name: "cloud-init"
-cloud_init_package_state: "present"
