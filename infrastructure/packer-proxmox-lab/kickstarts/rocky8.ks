@@ -38,6 +38,7 @@ skipx
 @^minimal-environment
 kexec-tools
 qemu-guest-agent
+cloud-init
 %end
 
 %post
@@ -48,6 +49,5 @@ sed -i 's/^#\?.*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/s
 sed -i 's/\(disable_root: \).*/\10/' /etc/cloud/cloud.cfg
 sed -i 's/\(ssd_pwauth: \).*/\11/' /etc/cloud/cloud.cfg
 %end
-
 
 reboot

@@ -42,6 +42,7 @@
             ],
           "ssh_password": "{{ user `ssh-password` }}",
           "ssh_username": "root",
+          "ssh_private_key_file": "/root/keys/id_rsa",
           "unmount_iso": "true",
           "template_name": "{{ user `vm-name` }}",
           "template_description": "Proxmox Rocky Linux 8 packer image - built on {{isotime \"20060102-150405\"}}",
@@ -53,8 +54,25 @@
       ],
       "provisioners": [
         {
+          "type": "shell",
+          "inline": [
+            "mkdir -m 700 ~/.ssh/"
+          ]
+        },
+				{
+          "type": "file",
+          "source": "/root/keys/id_rsa.pub",
+          "destination": "/root/.ssh/authorized_keys"
+        },
+        {
+          "type": "shell",
+          "inline": [
+            "chmod 600 ~/.ssh/authorized_keys"
+          ]
+        },
+        {
           "type": "ansible",
-          "playbook_file": "./ansible/playbook.yml"
+          "playbook_file": "{{ path.root }}/../ansible/playbook.yml"
         },
         {
           "type": "shell",
