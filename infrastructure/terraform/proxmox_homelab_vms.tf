@@ -88,4 +88,8 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
   provisioner "local-exec" {
     command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/keys/id_rsa ${path.root}/rke2_ansible/setup_rke2.yml -i rke2_ansible/inventory"
   }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/keys/id_rsa ${path.root}/rke2_ansible/deprovision_worker.yml -e 'host_to_remove=${self.name}' -i rke2_ansible/inventory"
+  }
 }

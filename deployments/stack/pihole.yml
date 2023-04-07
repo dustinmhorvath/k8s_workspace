@@ -117,6 +117,7 @@ spec:
       labels:
         app: pihole # has to match .spec.selector.matchLabels
     spec:
+      #hostNetwork: true
       terminationGracePeriodSeconds: 10
       containers:
       - name: pihole
@@ -131,6 +132,9 @@ spec:
           - name: dns-tcp
             containerPort: 53
             protocol: TCP
+          - name: dns-udp-other
+            containerPort: 67
+            protocol: UDP
           - name: pihole-gui
             containerPort: 80
             protocol: TCP
@@ -142,21 +146,21 @@ spec:
           mountPath: /etc/pihole
         - name: pihole-dnsmasq
           mountPath: /etc/dnsmasq.d
-        livenessProbe:
-          httpGet:
-            path: /admin.index.php
-            port: pihole-gui
-          initialDelaySeconds: 60
-          failureThreshold: 10
-          timeoutSeconds: 5
+            #livenessProbe:
+            #  httpGet:
+            #    path: /admin.index.php
+            #    port: pihole-gui
+            #  initialDelaySeconds: 60
+            #  failureThreshold: 10
+            #  timeoutSeconds: 5
   
-        readinessProbe:
-          httpGet:
-            path: /admin.index.php
-            port: pihole-gui
-          initialDelaySeconds: 60
-          failureThreshold: 3
-          timeoutSeconds: 5
+            #readinessProbe:
+            #  httpGet:
+            #    path: /admin.index.php
+            #    port: pihole-gui
+            #  initialDelaySeconds: 60
+            #  failureThreshold: 3
+            #  timeoutSeconds: 5
       volumes:
       - name: pihole-config
         persistentVolumeClaim:

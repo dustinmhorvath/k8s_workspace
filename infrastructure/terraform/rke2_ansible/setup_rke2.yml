@@ -41,10 +41,26 @@
         regexp: '^net.bridge.bridge-nf-call-iptables'
         line: 'net.bridge.bridge-nf-call-iptables=1'
 
-    - name: Write repository
-      copy:
+    - copy:
         src: rke2_repo.conf
         dest: /etc/yum.repos.d/rancher-rke2.repo
+
+    - rpm_key:
+        state: present
+        key: https://rpm.rancher.io/public.key
+
+    - name: Install pip3
+      yum:
+        name:
+          - python3-pip
+        state: present
+        lock_timeout: 300
+
+    - name: install pre-requisites
+      pip:
+        name:
+          - kubernetes
+
     - name: Install rke2 and dependencies
       yum:
         name:
@@ -52,6 +68,7 @@
           - python3-pip
           - tar
         state: present
+        lock_timeout: 300
 
 #    - name: Install rke2 with script
 #      shell: 'curl -sfL https://get.rke2.io | sh -'
@@ -63,7 +80,6 @@
           name:
             - openshift
             - pyyaml
-            - kubernetes 
       - name: Write config file on primary master
         ansible.builtin.blockinfile:
           create: yes
@@ -104,7 +120,7 @@
         replace:
           path: ~/.kube/config
           regexp: "https://127.0.0.1:6443"
-          replace: "https://{{ primary }}:6443"
+          replace: "https://{{ primary.ansible_host }}:6443"
 
 
       - name: check if helm is installed /usr/local/bin/helm

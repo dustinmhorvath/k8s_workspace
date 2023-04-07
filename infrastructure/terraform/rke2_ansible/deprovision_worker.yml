@@ -1,0 +1,19 @@
+---
+- hosts: master_primary
+  max_fail_percentage: 01
+  become: yes
+  environment:
+    PATH: "$PATH:/usr/local/bin/:/usr/bin/:/var/lib/rancher/rke2/bin/"
+  vars:
+    kubeconfig_remote: /etc/rancher/rke2/rke2.yaml
+  tasks:
+    - name: Drain node
+      kubernetes.core.k8s_drain:
+        state: drain
+        name: "{{ host_to_remove }}"
+        delete_options:
+          ignore_daemonsets: true
+          delete_emptydir_data: true
+
+    - name: Delete node from cluster
+      ansible.builtin.shell: 'kubectl delete node {{ host_to_remove }}'

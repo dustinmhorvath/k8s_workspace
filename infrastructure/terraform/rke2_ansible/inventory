@@ -1,10 +1,15 @@
-[k8s]
-[k8s:children]
-master_primary
-master_secondary
-
-[master_primary]
-192.168.1.161
-
-[master_secondary]
-192.168.1.16[2:3]
+---
+all:
+  children:
+    k8s:
+      children:
+        master_primary:
+          hosts:
+            k8s-mast-01.perihelion.host:
+              ansible_host: 192.168.1.161
+        master_secondary:
+          hosts:
+            k8s-wk-01.perihelion.host:
+              ansible_host: 192.168.1.162
+            k8s-wk-02.perihelion.host:
+              ansible_host: 192.168.1.163
