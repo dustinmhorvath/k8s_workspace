@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: transmission
+  name: deluge
   labels:
-    app: transmission
+    app: deluge
 spec:
   ports:
   - port: 80
-    targetPort: 9091
-    name: transmission
+    targetPort: 8112
+    name: deluge
   selector:
-    app: transmission
+    app: deluge
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: transmission-downloads-pv
+  name: deluge-downloads-pv
 spec:
   storageClassName: local-path
   capacity:
@@ -24,12 +24,12 @@ spec:
     - ReadWriteOnce
   csi:
     driver: cephfs.csi.ceph.com
-    volumeHandle: transmission-downloads-pv
+    volumeHandle: deluge-downloads-pv
     nodeStageSecretRef:
-      name: transmission-ceph
+      name: deluge-ceph
       namespace: default
     nodePublishSecretRef:
-      name: transmission-ceph
+      name: deluge-ceph
       namespace: default
     volumeAttributes:
       monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
@@ -39,7 +39,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: transmission-downloads-pvc
+  name: deluge-downloads-pvc
 spec:
   storageClassName: local-path
   accessModes:
@@ -47,12 +47,12 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  volumeName: transmission-downloads-pv
+  volumeName: deluge-downloads-pv
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: transmission-config-pv
+  name: deluge-config-pv
 spec:
   storageClassName: local-path
   capacity:
@@ -61,22 +61,22 @@ spec:
     - ReadWriteOnce
   csi:
     driver: cephfs.csi.ceph.com
-    volumeHandle: transmission-config-pv
+    volumeHandle: deluge-config-pv
     nodeStageSecretRef:
-      name: transmission-ceph
+      name: deluge-ceph
       namespace: default
     nodePublishSecretRef:
-      name: transmission-ceph
+      name: deluge-ceph
       namespace: default
     volumeAttributes:
       monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/transmission
+      rootPath: /docker/deluge
       provisionVolume: "false"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: transmission-config-pvc
+  name: deluge-config-pvc
 spec:
   storageClassName: local-path
   accessModes:
@@ -84,63 +84,56 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  volumeName: transmission-config-pv
+  volumeName: deluge-config-pv
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: transmission
+  name: deluge
   labels:
-    app: transmission
+    app: deluge
 spec:
   selector:
     matchLabels:
-      app: transmission # has to match .spec.template.metadata.labels
-  serviceName: "transmission"
-  replicas: 0
+      app: deluge # has to match .spec.template.metadata.labels
+  serviceName: "deluge"
+  replicas: 1
   template:
     metadata:
       labels:
-        app: transmission # has to match .spec.selector.matchLabels
+        app: deluge # has to match .spec.selector.matchLabels
     spec:
       terminationGracePeriodSeconds: 10
       containers:
-      - name: transmission
-        image: linuxserver/transmission:latest
+      - name: deluge
+        image: linuxserver/deluge:latest
         env:
           - name: TZ
             value: America/Chicago
-          - name: USER
-            value: "dustin"
-          - name: PASS
-            valueFrom:
-              secretKeyRef:
-                name: transmission-pw
-                key: password
         ports:
-        - containerPort: 9091
-          name: transmission
+        - containerPort: 8112
+          name: deluge
         volumeMounts:
-        - name: transmission-config
+        - name: deluge-config
           mountPath: /config
-        - name: transmission-downloads
+        - name: deluge-downloads
           mountPath: /downloads
       volumes:
-      - name: transmission-config
+      - name: deluge-config
         persistentVolumeClaim:
-          claimName: transmission-config-pvc
+          claimName: deluge-config-pvc
           readOnly: false
-      - name: transmission-downloads
+      - name: deluge-downloads
         persistentVolumeClaim:
-          claimName: transmission-downloads-pvc
+          claimName: deluge-downloads-pvc
           readOnly: false
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: transmission
+  name: deluge
   labels:
-    app: transmission
+    app: deluge
   annotations:
     #nginx.ingress.kubernetes.io/rewrite-target: /
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -154,7 +147,7 @@ spec:
         path: /
         backend:
           service:
-            name: transmission
+            name: deluge
             port:
               number: 80
   tls:

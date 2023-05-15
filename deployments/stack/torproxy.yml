@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: torproxy-clusterip
+  labels:
+    app: torproxy
+spec:
+  ports:
+  - port: 9050
+    protocol: TCP
+    targetPort: 9050
+    name: tor-socks
+  - port: 8118
+    protocol: TCP
+    targetPort: 8118
+    name: tor-http
+  selector:
+    app: torproxy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: torproxy
+  labels:
+    app: torproxy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: torproxy
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: torproxy
+    spec:
+      containers:
+      - name: torproxy
+        imagePullPolicy: Always
+        image: dockage/tor-privoxy
+        ports:
+        - containerPort: 9050
+        - containerPort: 8118

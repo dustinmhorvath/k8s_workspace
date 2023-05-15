@@ -27,10 +27,22 @@
         name: firewalld
         state: stopped
         enabled: no 
+
     - name: Create rke2 path
       file:
         path: /etc/rancher/rke2/
         state: directory
+
+    - name: Enable modules for ipvs
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+        persistent: present
+      loop:
+        - ip_vs_wrr
+        - ip_vs_sh
+        - ip_vs
+        - ip_vs_rr
 
     - name: Enable module
       shell: yum module enable container-tools:rhel8 -y
@@ -40,6 +52,11 @@
         path: /etc/sysctl.conf
         regexp: '^net.bridge.bridge-nf-call-iptables'
         line: 'net.bridge.bridge-nf-call-iptables=1'
+    - name: Replace a localhost entry with our own
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.conf
+        regexp: '^net.ipv4.conf.all.proxy_arp'
+        line: 'net.ipv4.conf.all.proxy_arp=1'
 
     - copy:
         src: rke2_repo.conf
@@ -50,6 +67,10 @@
         key: https://rpm.rancher.io/public.key
 
     - name: Install pip3
+      register: yum_results
+      until: yum_results is not failed
+      retries: 5
+      delay: 5
       yum:
         name:
           - python3-pip
@@ -62,10 +83,13 @@
           - kubernetes
 
     - name: Install rke2 and dependencies
+      register: yum_results
+      until: yum_results is not failed
+      retries: 5
+      delay: 5
       yum:
         name:
           - rke2-server
-          - python3-pip
           - tar
         state: present
         lock_timeout: 300
@@ -88,6 +112,9 @@
             token: jgjurnghjenvugbnsk
             tls-san:
               - {{ tls_name }}
+            kube-proxy-arg:
+              - proxy-mode=ipvs
+              - ipvs-strict-arp=true
       - name: Start primary master services
         service:
           name: rke2-server
@@ -120,8 +147,7 @@
         replace:
           path: ~/.kube/config
           regexp: "https://127.0.0.1:6443"
-          replace: "https://{{ primary.ansible_host }}:6443"
-
+          replace: "https://{{ hostvars[primary].ansible_host }}:6443"
 
       - name: check if helm is installed /usr/local/bin/helm
         stat:
@@ -147,17 +173,28 @@
           create: yes
           path: /etc/rancher/rke2/config.yaml
           block: |
-            server: https://{{ primary }}:9345/
+            server: https://{{ hostvars[primary].ansible_host }}:9345
             token: {{ hostvars[primary].primary_token.stdout }}
             tls-san:
               - {{ tls_name }}
+            kube-proxy-arg:
+              - proxy-mode=ipvs
+              - ipvs-strict-arp=true
       - name: Start secondary master services
+        register: secondary_start
+        until: secondary_start is not failed
+        retries: 5
+        delay: 5
         service:
           name: rke2-server
           state: started
           enabled: yes
-        async: 600
-        poll: 15
+      - name: Wait for nodes to be up
+        ansible.builtin.shell: '/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes | grep $HOSTNAME | grep -v "NotReady"'
+        register: get_nodes_output
+        retries: 10
+        delay: 30
+        until: get_nodes_output is not failed
       when: "'master_primary' not in group_names"
 
 - hosts: master_primary
@@ -193,6 +230,8 @@
           url: 'https://charts.rancher.io'
         - name: metallb
           url: 'https://metallb.github.io/metallb'
+        - name: ceph-csi
+          url: 'https://ceph.github.io/csi-charts'
 
 #
 #    - name: create some secrets
@@ -227,6 +266,10 @@
       ignore_errors: yes
 
     - name: Apply cert-manager config
+      register: cm_config
+      until: cm_config is not failed
+      retries: 5
+      delay: 5
       kubernetes.core.k8s:
         definition: "{{ lookup('file', item ) | from_yaml }}"
         state: present
@@ -248,6 +291,10 @@
       ignore_errors: yes
       # Create metallb configmap
     - name: Create configmap
+      register: metallb_config
+      until: metallb_config is not failed
+      retries: 5
+      delay: 5
       kubernetes.core.k8s:
         definition: "{{ lookup('file', item ) | from_yaml }}"
         state: present
@@ -255,6 +302,17 @@
       loop:
         - metallb_l2adv.yaml
         - metallb_ipaddresspool.yml
+
+    - name: Deploy ceph-csi
+      kubernetes.core.helm:
+        name: ceph-csi-cephfs
+        chart_ref: ceph-csi/ceph-csi-cephfs
+        release_namespace: ceph-csi-cephfs
+        create_namespace: true
+        #wait: True
+        replace: True
+        update_repo_cache: True
+      ignore_errors: yes
 
 #    - name: Deploy Rancher
 #      kubernetes.core.helm:
