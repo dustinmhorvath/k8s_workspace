@@ -1,5 +1,6 @@
 ceph fs authorize cephfs client.transmission / r /docker/transmission rw /downloads rw
 ceph fs authorize cephfs client.deluge / r /docker/deluge rw /downloads rw
+ceph fs authorize cephfs client.qbittorrent / r /docker/qbittorrent rw /downloads rw
 ceph fs authorize cephfs client.jackett / r /docker/jackett rw
 ceph fs authorize cephfs client.jellyfin / r /docker/jellyfin rw /tv rw /movies rw /music rw /books rw
 ceph fs authorize cephfs client.sonarr / r /docker/sonarr rw /tv rw /downloads rw

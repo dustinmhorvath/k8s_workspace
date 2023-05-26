@@ -97,7 +97,7 @@ spec:
     matchLabels:
       app: deluge # has to match .spec.template.metadata.labels
   serviceName: "deluge"
-  replicas: 1
+  replicas: 0
   template:
     metadata:
       labels:
