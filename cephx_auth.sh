@@ -9,6 +9,7 @@ ceph fs authorize cephfs client.lidarr / r /docker/lidarr rw /music rw /download
 ceph fs authorize cephfs client.readarr / r /docker/readarr rw /books rw /downloads rw
 ceph fs authorize cephfs client.prowlarr / r /docker/prowlarr rw
 ceph fs authorize cephfs client.redbot / r /docker/redbot rw
+ceph fs authorize cephfs client.ddclient / r /docker/ddclient rw
 ceph fs authorize cephfs client.samba / r /storage rw /backup rw
 
 ceph fs authorize cephfs client.docker / r /docker rw

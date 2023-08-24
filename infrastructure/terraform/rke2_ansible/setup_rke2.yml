@@ -57,6 +57,11 @@
         path: /etc/sysctl.conf
         regexp: '^net.ipv4.conf.all.proxy_arp'
         line: 'net.ipv4.conf.all.proxy_arp=1'
+    - name: Replace a localhost entry with our own
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.conf
+        regexp: '^net.ipv4.conf.all.forwarding'
+        line: 'net.ipv4.conf.all.forwarding=1'
 
     - copy:
         src: rke2_repo.conf
@@ -112,9 +117,9 @@
             token: jgjurnghjenvugbnsk
             tls-san:
               - {{ tls_name }}
-            kube-proxy-arg:
-              - proxy-mode=ipvs
-              - ipvs-strict-arp=true
+#            kube-proxy-arg:
+#              - proxy-mode=ipvs
+#              - ipvs-strict-arp=true
       - name: Start primary master services
         service:
           name: rke2-server
@@ -123,6 +128,7 @@
       - name: Wait for node to be up
         ansible.builtin.shell: '/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes | grep $HOSTNAME | grep -v "NotReady"'
         register: get_nodes_output
+        changed_when: false
         retries: 10
         delay: 30
         until: get_nodes_output is not failed
@@ -177,9 +183,9 @@
             token: {{ hostvars[primary].primary_token.stdout }}
             tls-san:
               - {{ tls_name }}
-            kube-proxy-arg:
-              - proxy-mode=ipvs
-              - ipvs-strict-arp=true
+#            kube-proxy-arg:
+#              - proxy-mode=ipvs
+#              - ipvs-strict-arp=true
       - name: Start secondary master services
         register: secondary_start
         until: secondary_start is not failed
@@ -232,6 +238,8 @@
           url: 'https://metallb.github.io/metallb'
         - name: ceph-csi
           url: 'https://ceph.github.io/csi-charts'
+        - name: netdata
+          url: 'https://netdata.github.io/helmchart/'
 
 #
 #    - name: create some secrets
@@ -240,6 +248,71 @@
 #        kubectl -n cattle-system create secret tls tls-rancher-ingress --cert=/root/ssl/tls.crt --key=/root/ssl/tls.key
 #        kubectl -n cattle-system create secret generic tls-ca --from-file=/root/ssl/cacerts.pem
 #      ignore_errors: yes
+    - name: Create namespaces
+      kubernetes.core.k8s:
+        name: ceph-csi-rbd
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Apply ceph-rbd config
+      register: csi_config
+      until: csi_config is not failed
+      retries: 5
+      delay: 5
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', item ) | from_yaml }}"
+        state: present
+        apply: yes
+      loop:
+        - 00_ceph-config-map.yml
+        - 00_csi-config-map.yml
+        - 00_csi-kms-config-map.yml
+        - 00_csi-rbd-secret.yml
+
+    - name: Get ceph-rbd manifests
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "~/manifests/{{ item.dest }}"
+      loop:
+        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml'
+          dest: 'csi-provisioner-rbac.yaml'
+        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml'
+          dest: 'csi-nodeplugin-rbac.yaml'
+        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml'
+          dest: 'csi-rbdplugin-provisioner.yaml'
+        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin.yaml'
+          dest: 'csi-rbdplugin.yaml'
+
+    - name: Change ceph-csi namespaces
+      ansible.builtin.replace:
+        path: "~/manifests/{{ item }}"
+        regexp: '(\s+)namespace: .*'
+        replace: '\1namespace: ceph-csi-rbd'
+      loop:
+        - 'csi-provisioner-rbac.yaml'
+        - 'csi-nodeplugin-rbac.yaml'
+        - 'csi-rbdplugin-provisioner.yaml'
+        - 'csi-rbdplugin.yaml'
+
+    - name: Apply ceph manifests and provisioner
+      kubernetes.core.k8s:
+        src: "~/manifests/{{ item }}"
+      loop:
+        - 'csi-provisioner-rbac.yaml'
+        - 'csi-nodeplugin-rbac.yaml'
+        - 'csi-rbdplugin-provisioner.yaml'
+        - 'csi-rbdplugin.yaml'
+
+    - name: Create storage class
+      register: sc_create
+      until: sc_create is not failed
+      retries: 5
+      delay: 5
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', '00_csi-rbd-sc.yml' ) | from_yaml }}"
+        state: present
+        apply: yes
 
     - name: Get manifests
       ansible.builtin.get_url:
@@ -302,6 +375,7 @@
       loop:
         - metallb_l2adv.yaml
         - metallb_ipaddresspool.yml
+        - metallb_ipvs.yml
 
     - name: Deploy ceph-csi
       kubernetes.core.helm:
@@ -313,6 +387,48 @@
         replace: True
         update_repo_cache: True
       ignore_errors: yes
+
+    - name: Deploy netdata
+      kubernetes.core.helm:
+        name: netdata
+        chart_ref: netdata/netdata
+        release_namespace: netdata
+        create_namespace: true
+        #wait: True
+        update_repo_cache: True
+        replace: true
+        values:
+          service:
+            type: LoadBalancer
+          deploymentStrategy:
+            type: Recreate
+          ingress:
+            hosts:
+              - monitor.perihelion.host
+            annotations:
+              cert-manager.io/cluster-issuer: "letsencrypt-prod"
+          parent:
+            database:
+              storageclass: csi-rbd-sc
+            alarms:
+              storageclass: csi-rbd-sc
+          k8sState:
+            persistence:
+              storageclass: csi-rbd-sc
+      ignore_errors: yes
+
+        #    - name: Deploy netdata PVCs
+        #      register: netdata_pvc
+        #      until: netdata_pvc is not failed
+        #      retries: 5
+        #      delay: 5
+        #      kubernetes.core.k8s:
+        #        definition: "{{ lookup('file', item ) | from_yaml }}"
+        #        state: present
+        #        apply: yes
+        #      loop:
+        #        - 01_netdata_pvc_alarms.yml
+        #        - 01_netdata_pvc_database.yml
 
 #    - name: Deploy Rancher
 #      kubernetes.core.helm:

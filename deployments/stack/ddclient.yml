@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ddclient-config-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: ddclient-config-pv
+    nodeStageSecretRef:
+      name: ddclient-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: ddclient-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /docker/ddclient
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ddclient-config-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: ddclient-config-pv
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ddclient
+  labels:
+    app: ddclient
+spec:
+  selector:
+    matchLabels:
+      app: ddclient # has to match .spec.template.metadata.labels
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ddclient # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: ddclient
+        image: linuxserver/ddclient
+        imagePullPolicy: Always
+        env:
+        - name: TZ
+          value: America/Chicago
+        volumeMounts:
+        - name: ddclient-config
+          mountPath: /config
+      volumes:
+      - name: ddclient-config
+        persistentVolumeClaim:
+          claimName: ddclient-config-pvc
+          readOnly: false
+
