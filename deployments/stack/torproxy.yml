@@ -25,11 +25,10 @@ metadata:
   labels:
     app: torproxy
 spec:
-  replicas: 3
   selector:
     matchLabels:
       app: torproxy
-  replicas: 1
+  replicas: 0
   template:
     metadata:
       labels:

@@ -75,7 +75,7 @@
       register: yum_results
       until: yum_results is not failed
       retries: 5
-      delay: 5
+      delay: 10
       yum:
         name:
           - python3-pip
@@ -91,7 +91,7 @@
       register: yum_results
       until: yum_results is not failed
       retries: 5
-      delay: 5
+      delay: 10
       yum:
         name:
           - rke2-server
@@ -190,7 +190,7 @@
         register: secondary_start
         until: secondary_start is not failed
         retries: 5
-        delay: 5
+        delay: 10
         service:
           name: rke2-server
           state: started
@@ -259,7 +259,7 @@
       register: csi_config
       until: csi_config is not failed
       retries: 5
-      delay: 5
+      delay: 10
       kubernetes.core.k8s:
         definition: "{{ lookup('file', item ) | from_yaml }}"
         state: present
@@ -308,7 +308,7 @@
       register: sc_create
       until: sc_create is not failed
       retries: 5
-      delay: 5
+      delay: 10
       kubernetes.core.k8s:
         definition: "{{ lookup('file', '00_csi-rbd-sc.yml' ) | from_yaml }}"
         state: present
@@ -342,7 +342,7 @@
       register: cm_config
       until: cm_config is not failed
       retries: 5
-      delay: 5
+      delay: 10
       kubernetes.core.k8s:
         definition: "{{ lookup('file', item ) | from_yaml }}"
         state: present
@@ -367,7 +367,7 @@
       register: metallb_config
       until: metallb_config is not failed
       retries: 5
-      delay: 5
+      delay: 10
       kubernetes.core.k8s:
         definition: "{{ lookup('file', item ) | from_yaml }}"
         state: present
@@ -421,7 +421,7 @@
         #      register: netdata_pvc
         #      until: netdata_pvc is not failed
         #      retries: 5
-        #      delay: 5
+        #      delay: 10
         #      kubernetes.core.k8s:
         #        definition: "{{ lookup('file', item ) | from_yaml }}"
         #        state: present

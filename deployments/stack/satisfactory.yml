@@ -77,8 +77,8 @@ spec:
         app: satisfactory # has to match .spec.selector.matchLabels
     spec:
       terminationGracePeriodSeconds: 30
-      #nodeSelector:
-      #  exclusive: "yes"
+      nodeSelector:
+        exclusive: "yes"
       tolerations:
       - key: "exclusive"
         operator: "Equal"

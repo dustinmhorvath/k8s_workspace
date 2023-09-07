@@ -28,6 +28,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: sqlite-mount-pvc
 spec:
+  storageClassName: local-path
   accessModes:
    - ReadWriteOnce
   resources:
@@ -39,6 +40,8 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: sqlite
+  labels:
+    app: sqlite
 spec:
   selector:
     matchLabels:

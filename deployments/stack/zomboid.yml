@@ -170,7 +170,7 @@ spec:
     matchLabels:
       app: zomboid # has to match .spec.template.metadata.labels
   serviceName: "zomboid"
-  replicas: 1
+  replicas: 0
   template:
     metadata:
       labels:
