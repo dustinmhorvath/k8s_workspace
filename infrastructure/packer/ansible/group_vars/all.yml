@@ -16,7 +16,7 @@ packages:
     - curl
     - wget
     - strace
-    - iptables-service
+    - iptables-services
     - open-vm-tools
   redhat_remove:
     - iwl*

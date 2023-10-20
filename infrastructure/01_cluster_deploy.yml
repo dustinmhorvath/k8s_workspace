@@ -1,0 +1,49 @@
+---
+- hosts: localhost
+  connection: local
+  vars:
+    cluster_name: cluster_test
+    venv_path: '.env'
+  tasks:
+    - name: Install required packages
+      apt:
+        pkg:
+          - terraform
+          - python3-pip
+        state: present
+        #update_cache: true
+
+    - name: Deploy terraform
+      environment:
+        PM_USER: 'terraform-prov@pve'
+        PM_PASS: 'own7lqti8804pbzj'
+      community.general.terraform:
+        project_path: 'terraform/'
+        state: present
+        force_init: true
+      register: terraform_output
+
+    - debug:
+        msg: "derp some string {{ terraform_output.outputs.instance_cluster_worker_ips.value | items | map('join', ',') | join(' ') }}"
+
+    - git:
+        repo: 'https://github.com/kubernetes-sigs/kubespray.git'
+        dest: kubespray
+
+    - name: deploy virtualenv requirements
+      pip:
+        requirements: "{{ playbook_dir }}/kubespray/requirements.txt"
+        virtualenv: "{{ playbook_dir }}/{{ venv_path }}"
+      register: derp
+
+    - name: copy inventory folder
+      copy:
+        src: kubespray/inventory/sample
+        dest: "kubespray/inventory/{{ cluster_name }}"
+
+      #declare -a IPS=(${masternode_public_ip} ${workernode_public_ip} ${workernode2_public_ip})
+    - shell:
+        cmd: "CONFIG_FILE=inventory/{{ cluster_name }}/hosts.yaml python3 contrib/inventory_builder/inventory.py {{ terraform_output.outputs.instance_cluster_master_ips.value | items | map('join', ',') | join(' ') }} {{ terraform_output.outputs.instance_cluster_worker_ips.value | items | map('join', ',') | join(' ') }}"
+        chdir: kubespray/
+      vars:
+        ansible_python_interpreter: '{{ venv_path }}/bin/python3'

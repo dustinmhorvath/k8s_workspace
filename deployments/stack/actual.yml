@@ -1,0 +1,114 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: actual
+  labels:
+    app: actual
+spec:
+  ports:
+  - port: 80
+    targetPort: 5006
+    name: actual
+  selector:
+    app: actual
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: actual-data-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: actual-data-pv
+    nodeStageSecretRef:
+      name: actual-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: actual-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      rootPath: /docker/actual
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: actual-data-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: actual-data-pv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: actual
+  labels:
+    app: actual
+spec:
+  selector:
+    matchLabels:
+      app: actual # has to match .spec.template.metadata.labels
+  serviceName: "actual"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: actual # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: actual
+        image: actualbudget/actual-server:latest
+        env:
+        - name: TZ
+          value: America/Chicago
+        ports:
+        - containerPort: 5006
+          name: actual
+        volumeMounts:
+        - name: actual-data
+          mountPath: /data
+      volumes:
+      - name: actual-data
+        persistentVolumeClaim:
+          claimName: actual-data-pvc
+          readOnly: false
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: actual
+  labels:
+    app: actual
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  rules:
+  - host: actual.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: actual
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - actual.perihelion.host
+    secretName: actual.perihelion.host

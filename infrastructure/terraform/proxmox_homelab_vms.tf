@@ -26,7 +26,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
   # Cloud-init section
   ipconfig0 = "ip=${each.value.ip}/24,gw=${each.value.gw}"
   ssh_user  = var.ssh_user
-  #sshkeys   = file("/root/keys/id_rsa")
+  #sshkeys   = file("/root/.ssh/id_rsa")
 
   # Post creation actions
   provisioner "remote-exec" {
@@ -35,15 +35,15 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
       type        = "ssh"
       user        = var.ssh_user
       password    = var.ssh_password
-      private_key = file("/root/keys/id_rsa")
+      private_key = file("/root/.ssh/id_rsa")
       host        = each.value.ip
     }
   }
-  provisioner "local-exec" {
-    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/keys/id_rsa ${path.root}/rke2_ansible/setup_rke2.yml -i rke2_ansible/inventory"
-  }
-}
+#  provisioner "local-exec" {
+#    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/.ssh/id_rsa ${path.root}/rke2_ansible/setup_rke2.yml -i rke2_ansible/inventory"
+#  }
 
+}
 resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
   for_each    = var.k8s_workers
   name        = each.value.name
@@ -72,7 +72,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
   # Cloud-init section
   ipconfig0 = "ip=${each.value.ip}/24,gw=${each.value.gw}"
   ssh_user  = var.ssh_user
-  #sshkeys   = file("/root/keys/id_rsa")
+  #sshkeys   = file("/root/.ssh/id_rsa")
 
   # Post creation actions
   provisioner "remote-exec" {
@@ -81,15 +81,23 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
       type        = "ssh"
       user        = var.ssh_user
       password    = var.ssh_password
-      private_key = file("/root/keys/id_rsa")
+      private_key = file("/root/.ssh/id_rsa")
       host        = each.value.ip
     }
   }
-  provisioner "local-exec" {
-    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/keys/id_rsa ${path.root}/rke2_ansible/setup_rke2.yml -i rke2_ansible/inventory"
+#  provisioner "local-exec" {
+#    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/.ssh/id_rsa ${path.root}/rke2_ansible/setup_rke2.yml -i rke2_ansible/inventory"
+#  }
+
+}
+
+output "instance_cluster_master_ips" {
+	value = {
+    for k, rocky8-k8s-kubespray-masters in proxmox_vm_qemu.rocky8-k8s-kubespray-masters: k => rocky8-k8s-kubespray-masters.default_ipv4_address
   }
-  provisioner "local-exec" {
-    when    = destroy
-    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/keys/id_rsa ${path.root}/rke2_ansible/deprovision_worker.yml -e 'host_to_remove=${self.name}' -i rke2_ansible/inventory || true"
+}
+output "instance_cluster_worker_ips" {
+	value = {
+    for k, rocky8-k8s-kubespray-workers in proxmox_vm_qemu.rocky8-k8s-kubespray-workers: k => rocky8-k8s-kubespray-workers.default_ipv4_address
   }
 }

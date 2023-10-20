@@ -7,21 +7,23 @@
     # Get first entry in group "master_primary"
     primary: "{{ groups['master_primary'][0] }}"
     tls_name: rancher.perihelion.host
+    RKE2_MINOR: 26
   environment:
     PATH: "$PATH:/usr/local/bin/:/usr/bin/"
   tasks:
-    - name: Fix disk size
-      shell: '{{ item }}'
-      loop:
-        - '/usr/sbin/parted -s -a opt /dev/vda "print free" "resizepart 2 100%" "print free"'
-        - '/sbin/pvresize /dev/vda2'
+    # Using autopart for now, so these partitions don't exist
+    #- name: Fix disk size
+    #  shell: '{{ item }}'
+    #  loop:
+    #    - '/usr/sbin/parted -s -a opt /dev/vda "print free" "resizepart 2 100%" "print free"'
+    #    - '/sbin/pvresize /dev/vda2'
 
-    - name: Create a logical volume of 512g.
-      community.general.lvol:
-        vg: local
-        lv: var
-        size: 25g
-        resizefs: true
+    #- name: Create a logical volume of 512g.
+    #  community.general.lvol:
+    #    vg: local
+    #    lv: var
+    #    size: 25g
+    #    resizefs: true
 
     - service:
         name: firewalld
@@ -63,13 +65,13 @@
         regexp: '^net.ipv4.conf.all.forwarding'
         line: 'net.ipv4.conf.all.forwarding=1'
 
-    - copy:
-        src: rke2_repo.conf
-        dest: /etc/yum.repos.d/rancher-rke2.repo
+    - template:
+        src: rke2_repo.conf.j2
+        dest: /etc/yum.repos.d/rancher-rke2-1-{{ RKE2_MINOR }}-latest.repo
 
-    - rpm_key:
-        state: present
-        key: https://rpm.rancher.io/public.key
+          #- rpm_key:
+          #    state: present
+          #    key: https://rpm.rancher.io/public.key
 
     - name: Install pip3
       register: yum_results
@@ -248,94 +250,83 @@
 #        kubectl -n cattle-system create secret tls tls-rancher-ingress --cert=/root/ssl/tls.crt --key=/root/ssl/tls.key
 #        kubectl -n cattle-system create secret generic tls-ca --from-file=/root/ssl/cacerts.pem
 #      ignore_errors: yes
-    - name: Create namespaces
-      kubernetes.core.k8s:
-        name: ceph-csi-rbd
-        api_version: v1
-        kind: Namespace
-        state: present
-
-    - name: Apply ceph-rbd config
-      register: csi_config
-      until: csi_config is not failed
-      retries: 5
-      delay: 10
-      kubernetes.core.k8s:
-        definition: "{{ lookup('file', item ) | from_yaml }}"
-        state: present
-        apply: yes
-      loop:
-        - 00_ceph-config-map.yml
-        - 00_csi-config-map.yml
-        - 00_csi-kms-config-map.yml
-        - 00_csi-rbd-secret.yml
-
-    - name: Get ceph-rbd manifests
-      ansible.builtin.get_url:
-        url: "{{ item.url }}"
-        dest: "~/manifests/{{ item.dest }}"
-      loop:
-        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml'
-          dest: 'csi-provisioner-rbac.yaml'
-        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml'
-          dest: 'csi-nodeplugin-rbac.yaml'
-        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml'
-          dest: 'csi-rbdplugin-provisioner.yaml'
-        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin.yaml'
-          dest: 'csi-rbdplugin.yaml'
-
-    - name: Change ceph-csi namespaces
-      ansible.builtin.replace:
-        path: "~/manifests/{{ item }}"
-        regexp: '(\s+)namespace: .*'
-        replace: '\1namespace: ceph-csi-rbd'
-      loop:
-        - 'csi-provisioner-rbac.yaml'
-        - 'csi-nodeplugin-rbac.yaml'
-        - 'csi-rbdplugin-provisioner.yaml'
-        - 'csi-rbdplugin.yaml'
-
-    - name: Apply ceph manifests and provisioner
-      kubernetes.core.k8s:
-        src: "~/manifests/{{ item }}"
-      loop:
-        - 'csi-provisioner-rbac.yaml'
-        - 'csi-nodeplugin-rbac.yaml'
-        - 'csi-rbdplugin-provisioner.yaml'
-        - 'csi-rbdplugin.yaml'
-
-    - name: Create storage class
-      register: sc_create
-      until: sc_create is not failed
-      retries: 5
-      delay: 10
-      kubernetes.core.k8s:
-        definition: "{{ lookup('file', '00_csi-rbd-sc.yml' ) | from_yaml }}"
-        state: present
-        apply: yes
-
-    - name: Get manifests
-      ansible.builtin.get_url:
-        url: "{{ item.url }}"
-        dest: "~/manifests/{{ item.dest }}"
-      loop:
-        - url: 'https://github.com/jetstack/cert-manager/releases/download/v1.5.1/cert-manager.crds.yaml'
-          dest: 'cert-manager.crds.yaml'
-
-    - name: Apply cert-manager CRDs
-      kubernetes.core.k8s:
-        src: ~/manifests/cert-manager.crds.yaml
+#    - name: Create namespaces
+#      kubernetes.core.k8s:
+#        name: ceph-csi-rbd
+#        api_version: v1
+#        kind: Namespace
+#        state: present
+#
+#    - name: Apply ceph-rbd config
+#      register: csi_config
+#      until: csi_config is not failed
+#      retries: 5
+#      delay: 10
+#      kubernetes.core.k8s:
+#        definition: "{{ lookup('file', item ) | from_yaml }}"
+#        state: present
+#        apply: yes
+#      loop:
+#        - 00_ceph-config-map.yml
+#        - 00_csi-config-map.yml
+#        - 00_csi-kms-config-map.yml
+#        - 00_csi-rbd-secret.yml
+#
+#    - name: Get ceph-rbd manifests
+#      ansible.builtin.get_url:
+#        url: "{{ item.url }}"
+#        dest: "~/manifests/{{ item.dest }}"
+#      loop:
+#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml'
+#          dest: 'csi-provisioner-rbac.yaml'
+#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml'
+#          dest: 'csi-nodeplugin-rbac.yaml'
+#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml'
+#          dest: 'csi-rbdplugin-provisioner.yaml'
+#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin.yaml'
+#          dest: 'csi-rbdplugin.yaml'
+#
+#    - name: Change ceph-csi namespaces
+#      ansible.builtin.replace:
+#        path: "~/manifests/{{ item }}"
+#        regexp: '(\s+)namespace: .*'
+#        replace: '\1namespace: ceph-csi-rbd'
+#      loop:
+#        - 'csi-provisioner-rbac.yaml'
+#        - 'csi-nodeplugin-rbac.yaml'
+#        - 'csi-rbdplugin-provisioner.yaml'
+#        - 'csi-rbdplugin.yaml'
+#
+#    - name: Apply ceph manifests and provisioner
+#      kubernetes.core.k8s:
+#        src: "~/manifests/{{ item }}"
+#      loop:
+#        - 'csi-provisioner-rbac.yaml'
+#        - 'csi-nodeplugin-rbac.yaml'
+#        - 'csi-rbdplugin-provisioner.yaml'
+#        - 'csi-rbdplugin.yaml'
+#
+#    - name: Create storage class
+#      register: sc_create
+#      until: sc_create is not failed
+#      retries: 5
+#      delay: 10
+#      kubernetes.core.k8s:
+#        definition: "{{ lookup('file', '00_csi-rbd-sc.yml' ) | from_yaml }}"
+#        state: present
+#        apply: yes
 
     - name: Deploy cert-manager
       kubernetes.core.helm:
         name: cert-manager
         chart_ref: jetstack/cert-manager
-        chart_version: v1.5.1
         release_namespace: cert-manager
         create_namespace: true
         #wait: True
-        replace: True
+        #replace: True
         update_repo_cache: True
+        values:
+          installCRDs: true
       ignore_errors: yes
 
     - name: Apply cert-manager config
@@ -359,7 +350,7 @@
         release_namespace: metallb-system
         create_namespace: true
         #wait: True
-        replace: True
+        #replace: True
         update_repo_cache: True
       ignore_errors: yes
       # Create metallb configmap
@@ -377,16 +368,41 @@
         - metallb_ipaddresspool.yml
         - metallb_ipvs.yml
 
-    - name: Deploy ceph-csi
+#    - name: Deploy ceph-csi-rbd
+#      kubernetes.core.helm:
+#        name: ceph-csi-rbd
+#        chart_ref: ceph-csi/ceph-csi-rbd
+#        release_namespace: ceph-csi-rbd
+#        create_namespace: true
+#        wait: True
+#        #replace: True
+#        update_repo_cache: True
+#        values:
+#          storageClass:
+#            create: true
+#          readAffinity:
+#            enabled: true
+#          rbac:
+#            create: true
+#      ignore_errors: yes
+
+
+    - name: Deploy ceph-csi-cephfs
+      #ignore_errors: yes
       kubernetes.core.helm:
         name: ceph-csi-cephfs
         chart_ref: ceph-csi/ceph-csi-cephfs
         release_namespace: ceph-csi-cephfs
         create_namespace: true
+        timeout: 10m
         #wait: True
-        replace: True
+        #replace: True
         update_repo_cache: True
-      ignore_errors: yes
+        values:
+          storageClass:
+            create: true
+          readAffinity:
+            enabled: true
 
     - name: Deploy netdata
       kubernetes.core.helm:
@@ -396,7 +412,7 @@
         create_namespace: true
         #wait: True
         update_repo_cache: True
-        replace: true
+        #replace: true
         values:
           service:
             type: LoadBalancer
@@ -408,6 +424,9 @@
             annotations:
               cert-manager.io/cluster-issuer: "letsencrypt-prod"
           parent:
+            claiming:
+              enabled: true
+              room: "0fbd34b3-73f1-43c6-9004-fa64b593fe90"
             database:
               storageclass: csi-rbd-sc
             alarms:

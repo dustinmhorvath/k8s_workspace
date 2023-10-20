@@ -1,0 +1,17 @@
+  ssh:
+    install-server: true
+    allow-pw: true
+    disable_root: false
+    ssh_quiet_keygen: true
+    allow_public_ssh_keys: true
+  user-data:
+    package_upgrade: false
+    timezone: America/Chicago
+#    users:
+#      - name: rxhackk
+#        groups: [adm, sudo]
+#        lock-passwd: false
+#        sudo: ALL=(ALL) NOPASSWD:ALL
+#        shell: /bin/bash
+#        ssh_authorized_keys:
+#          - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDqGjvb1c8rfv2bYNnQaRn8ggOBAUhK5jUhZUTr3dEgZDKl88leX5yBG1RWQOfc/ka/rlv6VrjuwRjy+EB1f98L9bU4JklM+/6iNqka57wrQmWIo852wK7shoDdbz55vIjdcw9S6ok11EYI39FNlVex0IYbhOlEoh/M1b0s= rxhackk@Computer

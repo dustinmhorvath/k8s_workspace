@@ -15,18 +15,20 @@ bootloader --location=mbr --append="rhgb crashkernel=auto"
 zerombr
 
 clearpart --all --initlabel
-partition /boot --fstype ext3 --size 512 --asprimary --ondisk=vda
-partition pv.01 --size=1 --grow --ondisk=vda
-
-volgroup local pv.01
-
-logvol / --fstype="ext4" --vgname=local --size=8192 --name=root
-logvol /home --fstype="ext4" --vgname=local --size=2048 --name=home
-logvol /opt --fstype="ext4" --vgname=local --size=3072 --name=opt
-logvol /tmp --fstype="ext4" --vgname=local --size=2048 --name=tmp
-logvol /var --fstype="ext4" --vgname=local --size=8192 --name=var
-logvol /var/log --fstype="ext4" --vgname=local --size=2048 --name=var_log
-logvol swap --recommended --vgname=local --size=2048 --name=swap --fstype swap
+#autopart --type=thinp --fstype=ext4
+autopart --type=lvm --fstype=ext4
+#partition /boot --fstype ext3 --size 512 --asprimary --ondisk=vda
+#partition pv.01 --size=1 --grow --ondisk=vda
+#
+#volgroup local pv.01
+#
+#logvol / --fstype="ext4" --vgname=local --size=8192 --name=root
+#logvol /home --fstype="ext4" --vgname=local --size=2048 --name=home
+#logvol /opt --fstype="ext4" --vgname=local --size=3072 --name=opt
+#logvol /tmp --fstype="ext4" --vgname=local --size=2048 --name=tmp
+#logvol /var --fstype="ext4" --vgname=local --size=8192 --name=var
+#logvol /var/log --fstype="ext4" --vgname=local --size=2048 --name=var_log
+#logvol swap --recommended --vgname=local --size=2048 --name=swap --fstype swap
 
 #auth --passalgo=sha512 --useshadow 
 selinux --disabled
@@ -41,13 +43,18 @@ qemu-guest-agent
 cloud-init
 %end
 
+%pre
+update-crypto-policies --set LEGACY
+touch /etc/growroot-disabled
+%end
+
 %post
-#yum install -y qemu-guest-agent
 # Disable the horrible, awful, unnecessary password requirements. None of your fucking business.
 sed -i 's/pam_passwdqc.so.*/pam_unix/' /etc/pam.d/system-auth
 sed -i 's/^#\?.*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 sed -i 's/\(disable_root: \).*/\10/' /etc/cloud/cloud.cfg
 sed -i 's/\(ssd_pwauth: \).*/\11/' /etc/cloud/cloud.cfg
+touch /etc/growroot-disabled
 %end
 
 reboot

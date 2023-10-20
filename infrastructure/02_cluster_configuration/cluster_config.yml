@@ -1,0 +1,256 @@
+---
+- hosts: all
+  become: yes
+  max_fail_percentage: 01
+  vars:
+    kubeconfig_remote: /etc/rancher/rke2/rke2.yaml
+    helm_repo_list:
+      - name: rancher-latest
+        url: 'https://releases.rancher.com/server-charts/latest'
+      - name: jetstack
+        url: 'https://charts.jetstack.io'
+      - name: nfs-subdir-external-provisioner
+        url: 'https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/'
+      - name: rancher-charts
+        url: 'https://charts.rancher.io'
+      - name: metallb
+        url: 'https://metallb.github.io/metallb'
+      - name: ceph-csi
+        url: 'https://ceph.github.io/csi-charts'
+      - name: netdata
+        url: 'https://netdata.github.io/helmchart/'
+  environment:
+    PATH: "$PATH:/usr/local/bin/:/usr/bin/"
+  tasks:
+    - name: Enable modules for ipvs
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+        persistent: present
+      loop:
+        - ip_vs_wrr
+        - ip_vs_sh
+        - ip_vs
+        - ip_vs_rr
+
+    - name: install pre-requisites
+      pip:
+        name:
+          - kubernetes
+
+    - name: Master config
+      block:
+      - name: check if helm is installed /usr/local/bin/helm
+        stat:
+          #path: $HOME/.config/helm/repositories.yaml
+          path: /usr/local/bin/helm
+        register: helm_check
+      - name: Download get-helm-3
+        get_url:
+          url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          dest: ~/get-helm-3.sh
+          mode: "700"
+        when: not helm_check.stat.exists
+      - name: install helm if not exist
+        command: >-
+          ~/get-helm-3.sh
+        when: not helm_check.stat.exists
+      #when: "'master_primary' in group_names"
+
+    - name: Create manifest temp path
+      file:
+        path: ~/manifests/
+        state: directory
+
+    - name: Add helm repositories
+      kubernetes.core.helm_repository:
+        name: "{{ item.name }}"
+        repo_url: "{{ item.url }}"
+      register: derp
+      loop: "{{ helm_repo_list }}"
+
+#    - name: Create namespaces
+#      kubernetes.core.k8s:
+#        name: ceph-csi-rbd
+#        api_version: v1
+#        kind: Namespace
+#        state: present
+#
+#    - name: Apply ceph-rbd config
+#      register: csi_config
+#      until: csi_config is not failed
+#      retries: 5
+#      delay: 10
+#      kubernetes.core.k8s:
+#        definition: "{{ lookup('file', item ) | from_yaml }}"
+#        state: present
+#        apply: yes
+#      loop:
+#        - 00_ceph-config-map.yml
+#        - 00_csi-config-map.yml
+#        - 00_csi-kms-config-map.yml
+#        - 00_csi-rbd-secret.yml
+#
+#    - name: Get ceph-rbd manifests
+#      ansible.builtin.get_url:
+#        url: "{{ item.url }}"
+#        dest: "~/manifests/{{ item.dest }}"
+#      loop:
+#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml'
+#          dest: 'csi-provisioner-rbac.yaml'
+#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml'
+#          dest: 'csi-nodeplugin-rbac.yaml'
+#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml'
+#          dest: 'csi-rbdplugin-provisioner.yaml'
+#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin.yaml'
+#          dest: 'csi-rbdplugin.yaml'
+#
+#    - name: Change ceph-csi namespaces
+#      ansible.builtin.replace:
+#        path: "~/manifests/{{ item }}"
+#        regexp: '(\s+)namespace: .*'
+#        replace: '\1namespace: ceph-csi-rbd'
+#      loop:
+#        - 'csi-provisioner-rbac.yaml'
+#        - 'csi-nodeplugin-rbac.yaml'
+#        - 'csi-rbdplugin-provisioner.yaml'
+#        - 'csi-rbdplugin.yaml'
+#
+#    - name: Apply ceph manifests and provisioner
+#      kubernetes.core.k8s:
+#        src: "~/manifests/{{ item }}"
+#      loop:
+#        - 'csi-provisioner-rbac.yaml'
+#        - 'csi-nodeplugin-rbac.yaml'
+#        - 'csi-rbdplugin-provisioner.yaml'
+#        - 'csi-rbdplugin.yaml'
+#
+#    - name: Create storage class
+#      register: sc_create
+#      until: sc_create is not failed
+#      retries: 5
+#      delay: 10
+#      kubernetes.core.k8s:
+#        definition: "{{ lookup('file', '00_csi-rbd-sc.yml' ) | from_yaml }}"
+#        state: present
+#        apply: yes
+
+    - name: Deploy cert-manager
+      kubernetes.core.helm:
+        name: cert-manager
+        chart_ref: jetstack/cert-manager
+        release_namespace: cert-manager
+        create_namespace: true
+        #wait: True
+        #replace: True
+        update_repo_cache: True
+        values:
+          installCRDs: true
+      ignore_errors: yes
+
+    - name: Apply cert-manager config
+      register: cm_config
+      until: cm_config is not failed
+      retries: 5
+      delay: 10
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', item ) | from_yaml }}"
+        state: present
+        apply: yes
+      loop:
+        - 00_letsencrypt_nginx_prod.yml
+        - 00_letsencrypt_nginx.yml
+
+    - name: Deploy metallb
+      kubernetes.core.helm:
+        name: metallb
+        chart_ref: metallb/metallb
+        #chart_version: v0.12.1
+        release_namespace: metallb-system
+        create_namespace: true
+        #wait: True
+        #replace: True
+        update_repo_cache: True
+      ignore_errors: yes
+      # Create metallb configmap
+    - name: Create configmap
+      register: metallb_config
+      until: metallb_config is not failed
+      retries: 5
+      delay: 10
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', item ) | from_yaml }}"
+        state: present
+        apply: yes
+      loop:
+        - metallb_l2adv.yaml
+        - metallb_ipaddresspool.yml
+        - metallb_ipvs.yml
+
+#    - name: Deploy ceph-csi-rbd
+#      kubernetes.core.helm:
+#        name: ceph-csi-rbd
+#        chart_ref: ceph-csi/ceph-csi-rbd
+#        release_namespace: ceph-csi-rbd
+#        create_namespace: true
+#        wait: True
+#        #replace: True
+#        update_repo_cache: True
+#        values:
+#          storageClass:
+#            create: true
+#          readAffinity:
+#            enabled: true
+#          rbac:
+#            create: true
+#      ignore_errors: yes
+
+
+    - name: Deploy ceph-csi-cephfs
+      #ignore_errors: yes
+      kubernetes.core.helm:
+        name: ceph-csi-cephfs
+        chart_ref: ceph-csi/ceph-csi-cephfs
+        release_namespace: ceph-csi-cephfs
+        create_namespace: true
+        timeout: 10m
+        #wait: True
+        #replace: True
+        update_repo_cache: True
+        values:
+          storageClass:
+            create: true
+          readAffinity:
+            enabled: true
+
+    - name: Deploy netdata
+      kubernetes.core.helm:
+        name: netdata
+        chart_ref: netdata/netdata
+        release_namespace: netdata
+        create_namespace: true
+        #wait: True
+        update_repo_cache: True
+        #replace: true
+        values:
+          service:
+            type: LoadBalancer
+          deploymentStrategy:
+            type: Recreate
+          ingress:
+            hosts:
+              - monitor.perihelion.host
+            annotations:
+              cert-manager.io/cluster-issuer: "letsencrypt-prod"
+          parent:
+            claiming:
+              enabled: true
+              room: "0fbd34b3-73f1-43c6-9004-fa64b593fe90"
+            database:
+              storageclass: csi-rbd-sc
+            alarms:
+              storageclass: csi-rbd-sc
+          k8sState:
+            persistence:
+              storageclass: csi-rbd-sc
+      ignore_errors: yes

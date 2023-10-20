@@ -1,10 +1,10 @@
-k8s_masters = {
-  m1 = { target_node = "pve01", vcpu = "4", memory = "12288", disk_size = "50G", name = "k8s-mast-01.perihelion.host", ip = "192.168.1.161", gw = "192.168.1.1" },
-}
 
+k8s_masters = {
+  m1 = { target_node = "pve01", vcpu = "4", memory = "12288", disk_size = "40G", name = "k8s-mast-01.perihelion.host", ip = "192.168.1.161", gw = "192.168.1.1" },
+}
 k8s_workers = {
-  w1 = { target_node = "pve01", vcpu = "6", memory = "16384", disk_size = "50G", name = "k8s-wk-01.perihelion.host", ip = "192.168.1.162", gw = "192.168.1.1" },
-  w2 = { target_node = "pve01", vcpu = "6", memory = "24576", disk_size = "50G", name = "k8s-wk-02.perihelion.host", ip = "192.168.1.163", gw = "192.168.1.1" },
+  w1 = { target_node = "pve01", vcpu = "6", memory = "16384", disk_size = "60G", name = "k8s-wk-01.perihelion.host", ip = "192.168.1.162", gw = "192.168.1.1" },
+  w2 = { target_node = "pve01", vcpu = "6", memory = "24576", disk_size = "60G", name = "k8s-wk-02.perihelion.host", ip = "192.168.1.163", gw = "192.168.1.1" },
 }
 
 firewalld_k8s_config = [
