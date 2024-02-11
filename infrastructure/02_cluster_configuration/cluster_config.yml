@@ -1,9 +1,27 @@
 ---
+- hosts: kube_control_plane
+  become: yes
+  tasks:
+    - name: Fetch kubeconfig to local
+      run_once: true
+      fetch:
+        src: "~/.kube/config"
+        dest: "~/.kube/config"
+        flat: yes
+    - name: replace host ip address in the kubeconfig
+      run_once: true
+      delegate_to: localhost
+      vars:
+        first_cplane_ip: "{{ hostvars[groups['kube_control_plane'][0]].access_ip }}"
+      replace:
+        path: ~/.kube/config
+        regexp: "https://127.0.0.1:6443"
+        replace: "https://{{ first_cplane_ip }}:6443"
+
 - hosts: all
   become: yes
   max_fail_percentage: 01
   vars:
-    kubeconfig_remote: /etc/rancher/rke2/rke2.yaml
     helm_repo_list:
       - name: rancher-latest
         url: 'https://releases.rancher.com/server-charts/latest'
@@ -19,8 +37,12 @@
         url: 'https://ceph.github.io/csi-charts'
       - name: netdata
         url: 'https://netdata.github.io/helmchart/'
+      - name: ingress-nginx
+        url: 'https://kubernetes.github.io/ingress-nginx'
   environment:
     PATH: "$PATH:/usr/local/bin/:/usr/bin/"
+
+
   tasks:
     - name: Enable modules for ipvs
       community.general.modprobe:
@@ -55,14 +77,10 @@
         command: >-
           ~/get-helm-3.sh
         when: not helm_check.stat.exists
-      #when: "'master_primary' in group_names"
-
-    - name: Create manifest temp path
-      file:
-        path: ~/manifests/
-        state: directory
+      when: "'kube_control_plane' in group_names"
 
     - name: Add helm repositories
+      run_once: True
       kubernetes.core.helm_repository:
         name: "{{ item.name }}"
         repo_url: "{{ item.url }}"
@@ -75,6 +93,11 @@
 #        api_version: v1
 #        kind: Namespace
 #        state: present
+#
+#    - name: Create manifest temp path
+#      file:
+#        path: ~/manifests/
+#        state: directory
 #
 #    - name: Apply ceph-rbd config
 #      register: csi_config
@@ -134,8 +157,19 @@
 #        definition: "{{ lookup('file', '00_csi-rbd-sc.yml' ) | from_yaml }}"
 #        state: present
 #        apply: yes
+    - name: Deploy nginx ingress controller
+      run_once: True
+      kubernetes.core.helm:
+        name: nginx
+        chart_ref: ingress-nginx/ingress-nginx
+        release_namespace: nginx
+        create_namespace: true
+        wait: True
+        #replace: True
+        update_repo_cache: True
 
     - name: Deploy cert-manager
+      run_once: True
       kubernetes.core.helm:
         name: cert-manager
         chart_ref: jetstack/cert-manager
@@ -146,9 +180,14 @@
         update_repo_cache: True
         values:
           installCRDs: true
+          ingressShim:
+            defaultIssuerName: letsencrypt-prod
+            defaultIssuerKind: ClusterIssuer
+            defaultIssuerGroup: cert-manager.io
       ignore_errors: yes
 
     - name: Apply cert-manager config
+      run_once: True
       register: cm_config
       until: cm_config is not failed
       retries: 5
@@ -162,6 +201,7 @@
         - 00_letsencrypt_nginx.yml
 
     - name: Deploy metallb
+      run_once: True
       kubernetes.core.helm:
         name: metallb
         chart_ref: metallb/metallb
@@ -174,6 +214,7 @@
       ignore_errors: yes
       # Create metallb configmap
     - name: Create configmap
+      run_once: True
       register: metallb_config
       until: metallb_config is not failed
       retries: 5
@@ -208,6 +249,7 @@
 
     - name: Deploy ceph-csi-cephfs
       #ignore_errors: yes
+      run_once: True
       kubernetes.core.helm:
         name: ceph-csi-cephfs
         chart_ref: ceph-csi/ceph-csi-cephfs
@@ -224,6 +266,7 @@
             enabled: true
 
     - name: Deploy netdata
+      run_once: True
       kubernetes.core.helm:
         name: netdata
         chart_ref: netdata/netdata

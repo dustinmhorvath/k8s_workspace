@@ -6,7 +6,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
   os_type     = "cloud-init"
   full_clone  = true
   memory      = each.value.memory
-  balloon     = 2048
+  #balloon     = 2048
   sockets     = "1"
   cores       = each.value.vcpu
   cpu         = "host"
