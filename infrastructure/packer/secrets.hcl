@@ -1,5 +1,0 @@
-ssh-password = "somepassword"
-proxmox-url = "https://192.168.1.131:8006/api2/json"
-proxmox-node = "pve01"
-proxmox-username = "root@pam"
-proxmox-password = "trinity~82467913"
