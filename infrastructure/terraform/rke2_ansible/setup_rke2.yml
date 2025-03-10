@@ -7,7 +7,7 @@
     # Get first entry in group "master_primary"
     primary: "{{ groups['master_primary'][0] }}"
     tls_name: rancher.perihelion.host
-    RKE2_MINOR: 26
+    RKE2_MINOR: 28
   environment:
     PATH: "$PATH:/usr/local/bin/:/usr/bin/"
   tasks:
@@ -89,23 +89,22 @@
         name:
           - kubernetes
 
-    - name: Install rke2 and dependencies
-      register: yum_results
-      until: yum_results is not failed
-      retries: 5
-      delay: 10
-      yum:
-        name:
-          - rke2-server
-          - tar
-        state: present
-        lock_timeout: 300
-
 #    - name: Install rke2 with script
 #      shell: 'curl -sfL https://get.rke2.io | sh -'
 
     - name: Start primary master
       block:
+      - name: Install rke2 and dependencies
+        register: yum_results
+        until: yum_results is not failed
+        retries: 5
+        delay: 10
+        yum:
+          name:
+            - rke2-server
+            - tar
+          state: present
+          lock_timeout: 300
       - name: install pre-requisites
         pip:
           name:
@@ -119,6 +118,8 @@
             token: jgjurnghjenvugbnsk
             tls-san:
               - {{ tls_name }}
+            node-taint:
+              - "CriticalAddonsOnly=true:NoExecute"
 #            kube-proxy-arg:
 #              - proxy-mode=ipvs
 #              - ipvs-strict-arp=true
@@ -176,6 +177,18 @@
 
     - name: Start secondary masters
       block:
+  
+      - name: Install rke2 and dependencies
+        register: yum_results
+        until: yum_results is not failed
+        retries: 5
+        delay: 10
+        yum:
+          name:
+            - rke2-agent
+            - tar
+          state: present
+          lock_timeout: 300
       - name: Write config files on secondary masters
         ansible.builtin.blockinfile:
           create: yes
@@ -190,19 +203,21 @@
 #              - ipvs-strict-arp=true
       - name: Start secondary master services
         register: secondary_start
-        until: secondary_start is not failed
+        until: secondary_start.status.ActiveState == "active"
         retries: 5
         delay: 10
         service:
-          name: rke2-server
+          name: rke2-agent
           state: started
           enabled: yes
-      - name: Wait for nodes to be up
-        ansible.builtin.shell: '/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes | grep $HOSTNAME | grep -v "NotReady"'
-        register: get_nodes_output
-        retries: 10
-        delay: 30
-        until: get_nodes_output is not failed
+# I'm going to assume that waiting for the service above is sufficient
+#      - name: Wait for nodes to be up
+#        delegate_to: "{{ primary }}"
+#        ansible.builtin.shell: '/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes | grep $HOSTNAME | grep -v "NotReady"'
+#        register: get_nodes_output
+#        retries: 10
+#        delay: 30
+#        until: get_nodes_output is not failed
       when: "'master_primary' not in group_names"
 
 - hosts: master_primary
@@ -243,59 +258,45 @@
         - name: netdata
           url: 'https://netdata.github.io/helmchart/'
 
-#
 #    - name: create some secrets
 #      shell: |
 #        ## these files have to be named tls.crt/tls.key/cacerts.pem. you can use symlinks though
 #        kubectl -n cattle-system create secret tls tls-rancher-ingress --cert=/root/ssl/tls.crt --key=/root/ssl/tls.key
 #        kubectl -n cattle-system create secret generic tls-ca --from-file=/root/ssl/cacerts.pem
 #      ignore_errors: yes
-#    - name: Create namespaces
-#      kubernetes.core.k8s:
-#        name: ceph-csi-rbd
-#        api_version: v1
-#        kind: Namespace
-#        state: present
-#
-#    - name: Apply ceph-rbd config
-#      register: csi_config
-#      until: csi_config is not failed
-#      retries: 5
-#      delay: 10
-#      kubernetes.core.k8s:
-#        definition: "{{ lookup('file', item ) | from_yaml }}"
-#        state: present
-#        apply: yes
-#      loop:
-#        - 00_ceph-config-map.yml
-#        - 00_csi-config-map.yml
-#        - 00_csi-kms-config-map.yml
-#        - 00_csi-rbd-secret.yml
-#
-#    - name: Get ceph-rbd manifests
-#      ansible.builtin.get_url:
-#        url: "{{ item.url }}"
-#        dest: "~/manifests/{{ item.dest }}"
-#      loop:
-#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml'
-#          dest: 'csi-provisioner-rbac.yaml'
-#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml'
-#          dest: 'csi-nodeplugin-rbac.yaml'
-#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml'
-#          dest: 'csi-rbdplugin-provisioner.yaml'
-#        - url: 'https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin.yaml'
-#          dest: 'csi-rbdplugin.yaml'
-#
-#    - name: Change ceph-csi namespaces
-#      ansible.builtin.replace:
-#        path: "~/manifests/{{ item }}"
-#        regexp: '(\s+)namespace: .*'
-#        replace: '\1namespace: ceph-csi-rbd'
-#      loop:
-#        - 'csi-provisioner-rbac.yaml'
-#        - 'csi-nodeplugin-rbac.yaml'
-#        - 'csi-rbdplugin-provisioner.yaml'
-#        - 'csi-rbdplugin.yaml'
+
+    - name: Create ceph-rbd namespaces
+      kubernetes.core.k8s:
+        name: ceph-csi-rbd
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Get ceph-rbd manifests
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/{{ item.url }}"
+        dest: "ceph-rbd/"
+      loop:
+        - url: 'csidriver.yaml'
+        - url: 'csi-provisioner-rbac.yaml'
+        - url: 'csi-nodeplugin-rbac.yaml'
+        - url: 'csi-rbdplugin-provisioner.yaml'
+        - url: 'csi-rbdplugin.yaml'
+
+           # Testing without these
+#          dest: 'ceph-rbd/csi-nodeplugin-rbac.yaml'
+
+    - name: Change ceph-csi namespaces
+      ansible.builtin.replace:
+        path: "ceph-rbd/{{ item }}"
+        regexp: '(\s+)namespace: .*'
+        replace: '\1namespace: ceph-csi-rbd'
+      loop:
+        - 'csidriver.yaml'
+        - 'csi-provisioner-rbac.yaml'
+        - 'csi-nodeplugin-rbac.yaml'
+        - 'csi-rbdplugin-provisioner.yaml'
+        - 'csi-rbdplugin.yaml'
 #
 #    - name: Apply ceph manifests and provisioner
 #      kubernetes.core.k8s:
@@ -346,7 +347,6 @@
       kubernetes.core.helm:
         name: metallb
         chart_ref: metallb/metallb
-        #chart_version: v0.12.1
         release_namespace: metallb-system
         create_namespace: true
         #wait: True

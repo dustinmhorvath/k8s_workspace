@@ -4,19 +4,24 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
   desc        = each.value.name
   target_node = each.value.target_node
   os_type     = "cloud-init"
+  cloudinit_cdrom_storage = "local-lvm"
   full_clone  = true
   memory      = each.value.memory
   #balloon     = 2048
   sockets     = "1"
   cores       = each.value.vcpu
-  cpu         = "host"
-  scsihw      = "virtio-scsi-pci"
+  #cpu         = "host"
   clone       = var.k8s_source_template
   agent       = 1
-  disk {
-    size    = each.value.disk_size
-    type    = "virtio"
-    storage = "local-lvm"
+  disks {
+    virtio {
+      virtio0 {
+        disk {
+          size    = each.value.disk_size
+          storage = "local-lvm"
+        }
+      }
+    }
   }
   network {
     model  = "virtio"
@@ -51,18 +56,23 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
   target_node = each.value.target_node
   os_type     = "cloud-init"
   full_clone  = true
+  cloudinit_cdrom_storage = "local-lvm"
   memory      = each.value.memory
-  balloon     = 2048
+  #balloon     = 2048
   sockets     = "1"
   cores       = each.value.vcpu
   cpu         = "host"
-  scsihw      = "virtio-scsi-pci"
   clone       = var.k8s_source_template
   agent       = 1
-  disk {
-    size    = each.value.disk_size
-    type    = "virtio"
-    storage = "local-lvm"
+  disks {
+    virtio {
+      virtio0 {
+        disk {
+          size    = each.value.disk_size
+          storage = "local-lvm"
+        }
+      }
+    }
   }
   network {
     model  = "virtio"

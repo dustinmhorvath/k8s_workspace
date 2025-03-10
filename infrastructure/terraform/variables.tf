@@ -32,3 +32,21 @@ variable "firewalld_k8s_config" {
   description = ""
   type        = list
 }
+
+variable "virtual_environment_endpoint" {
+  description = ""
+  type        = string
+}
+variable "virtual_environment_username" {
+  description = ""
+  type        = string
+}
+variable "virtual_environment_password" {
+  description = ""
+  type        = string
+}
+variable "virtual_environment_ssh_username" {
+  description = ""
+  default     = "root"
+  type        = string
+}

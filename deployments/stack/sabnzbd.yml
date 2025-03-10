@@ -1,0 +1,166 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sabnzbd
+  labels:
+    app: sabnzbd
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: sabnzbd
+  selector:
+    app: sabnzbd
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sabnzbd-downloads-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: sabnzbd-downloads-pv
+    nodeStageSecretRef:
+      name: sabnzbd-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: sabnzbd-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.201:6789
+      rootPath: /downloads
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sabnzbd-downloads-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: sabnzbd-downloads-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sabnzbd-config-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: sabnzbd-config-pv
+    nodeStageSecretRef:
+      name: sabnzbd-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: sabnzbd-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.201:6789
+      rootPath: /containervolumes/sabnzbd
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sabnzbd-config-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: sabnzbd-config-pv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sabnzbd
+  labels:
+    app: sabnzbd
+spec:
+  selector:
+    matchLabels:
+      app: sabnzbd # has to match .spec.template.metadata.labels
+  serviceName: "sabnzbd"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sabnzbd # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: sabnzbd
+        image: linuxserver/sabnzbd:latest
+        env:
+          - name: TZ
+            value: America/Chicago
+          - name: NZBGET_USER
+            valueFrom:
+              secretKeyRef:
+                name: nzbget-login
+                key: username
+          - name: NZBGET_PASS
+            valueFrom:
+              secretKeyRef:
+                name: nzbget-login
+                key: password
+        ports:
+        - containerPort: 8080
+          name: sabnzbd
+        volumeMounts:
+        - name: sabnzbd-config
+          mountPath: /config
+        - name: sabnzbd-downloads
+          mountPath: /downloads
+      volumes:
+      - name: sabnzbd-config
+        persistentVolumeClaim:
+          claimName: sabnzbd-config-pvc
+          readOnly: false
+      - name: sabnzbd-downloads
+        persistentVolumeClaim:
+          claimName: sabnzbd-downloads-pvc
+          readOnly: false
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sabnzbd
+  labels:
+    app: sabnzbd
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  rules:
+  - host: nzb.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: sabnzbd
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - nzb.perihelion.host
+    secretName: nzb.perihelion.host

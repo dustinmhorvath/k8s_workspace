@@ -1,0 +1,230 @@
+env:
+  HOMEPAGE_VAR_TOKEN_PROXMOX_PASSWORD:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: proxmox_password
+  HOMEPAGE_VAR_TOKEN_PROXMOX_USERNAME:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: proxmox_username
+  HOMEPAGE_VAR_TOKEN_UNIFI:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: unifi
+  HOMEPAGE_VAR_TOKEN_JELLYFIN:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: jellyfin
+  HOMEPAGE_VAR_TOKEN_JELLYSEERR:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: jellyseerr
+  HOMEPAGE_VAR_TOKEN_SONARR:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: sonarr
+  HOMEPAGE_VAR_TOKEN_RADARR:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: radarr
+  HOMEPAGE_VAR_TOKEN_LIDARR:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: lidarr
+  HOMEPAGE_VAR_TOKEN_PROWLARR:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: prowlarr
+  HOMEPAGE_VAR_TOKEN_QBITTORRENT_USERNAME:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: qbittorrent-username
+  HOMEPAGE_VAR_TOKEN_QBITTORRENT_PASSWORD:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: qbittorrent-password
+  HOMEPAGE_VAR_TOKEN_SABNZBD:
+    valueFrom:
+      secretKeyRef:
+        name: app-tokens
+        key: sabnzbd
+config:
+  services:
+    - Infrastructure:
+        - PVE1:
+            href: https://192.168.1.201:8006/
+            icon: proxmox.png
+            siteMonitor: https://192.168.1.201:8006
+            widget:
+                url: https://192.168.1.201:8006
+                type: proxmox
+                password: "{{HOMEPAGE_VAR_TOKEN_PROXMOX_PASSWORD}}"
+                username: "{{HOMEPAGE_VAR_TOKEN_PROXMOX_USERNAME}}"
+        - Unifi:
+            href: https://192.168.1.1
+            icon: unifi.png
+            sitemonitor: https://192.168.1.1
+            widget:
+                type: unifi
+                url: https://192.168.1.1
+                username: homepage
+                password: "{{HOMEPAGE_VAR_TOKEN_UNIFI}}"
+    - Media:
+        - Jellyfin:
+            href: https://media.perihelion.host/
+            icon: jellyfin.png
+            description: Media Server
+            siteMonitor: https://media.perihelion.host
+            widget:
+                key: "{{HOMEPAGE_VAR_TOKEN_JELLYFIN}}"
+                type: jellyfin
+                url: https://media.perihelion.host
+                enableBlocks: false
+                enableNowPlaying: true
+        - Jellyseerr:
+            description: Media Requests
+            href: https://requests.perihelion.host/
+            siteMonitor: https://requests.perihelion.host
+            icon: jellyseerr.png
+            widget:
+                key: "{{HOMEPAGE_VAR_TOKEN_JELLYSEERR}}"
+                type: jellyseerr
+                url: https://requests.perihelion.host
+        - Radarr:
+            href: https://radarr.perihelion.host/
+            icon: radarr.png
+            description: Movie Manager
+            siteMonitor: https://radarr.perihelion.host
+            widget:
+                key: "{{HOMEPAGE_VAR_TOKEN_RADARR}}"
+                type: radarr
+                url: https://radarr.perihelion.host
+        - Sonarr:
+            href: https://sonarr.perihelion.host/
+            icon: sonarr.png
+            description: TV Show Manager
+            siteMonitor: https://sonarr.perihelion.host
+            widget:
+                key: "{{HOMEPAGE_VAR_TOKEN_SONARR}}"
+                type: sonarr
+                url: https://sonarr.perihelion.host
+        - Lidarr:
+            href: https://lidarr.perihelion.host/
+            icon: lidarr.png
+            description: Music Manager
+            siteMonitor: https://lidarr.perihelion.host
+            widget:
+                key: "{{HOMEPAGE_VAR_TOKEN_LIDARR}}"
+                type: lidarr
+                url: https://lidarr.perihelion.host
+        - QBitTorrent:
+            href: https://torrent.perihelion.host/
+            icon: qbittorrent.png
+            description: Torrent Client
+            siteMonitor: https://torrent.perihelion.host
+            widget:
+                username: "{{HOMEPAGE_VAR_TOKEN_QBITTORRENT_USERNAME}}"
+                password: "{{HOMEPAGE_VAR_TOKEN_QBITTORRENT_PASSWORD}}"
+                type: qbittorrent
+                url: https://torrent.perihelion.host
+        - Prowlarr:
+            href: https://prowlarr.perihelion.host/
+            icon: prowlarr.png
+            description: Indexer Manager
+            siteMonitor: https://prowlarr.perihelion.host
+            widget:
+                key: "{{HOMEPAGE_VAR_TOKEN_PROWLARR}}"
+                type: prowlarr
+                url: https://prowlarr.perihelion.host
+        - SABnzbd:
+            href: https://nzb.perihelion.host/
+            icon: sabnzbd.png
+            description: NZB client
+            siteMonitor: https://nzb.perihelion.host/
+            widget:
+                type: sabnzbd
+                url: https://nzb.perihelion.host
+                key: "{{HOMEPAGE_VAR_TOKEN_SABNZBD}}"
+
+  widgets:
+    # show the kubernetes widget, with the cluster summary and individual nodes
+    - datetime:
+        format:
+            hour12: false
+            timeStyle: short
+        text_size: xl
+    - kubernetes:
+        cluster:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+          label: "cluster"
+        nodes:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+    - unifi_console:
+        url: https://192.168.1.1
+        username: homepage
+        password: "{{HOMEPAGE_VAR_TOKEN_UNIFI}}"
+  kubernetes:
+    mode: cluster
+  settings:
+    headerStyle: clean
+    statusStyle: "dot"
+    hideVersion: true
+    cardBlur: sm
+    language: en
+    layout:
+    - Infrastructure: 
+        columns: 5
+        style: row
+    - Media:
+        columns: 4
+        style: row
+    quicklaunch:
+      hideInternetSearch: true
+      hideVisitURL: true
+      searchDescriptions: true
+
+# The service account is necessary to allow discovery of other services
+serviceAccount:
+  create: true
+  name: homepage
+
+# This enables the service account to access the necessary resources
+enableRbac: true
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      # Example annotations to add Homepage to your Homepage!
+      #gethomepage.dev/enabled: "true"
+      #gethomepage.dev/name: "Homepage"
+      #gethomepage.dev/description: "Dynamically Detected Homepage"
+      #gethomepage.dev/group: "Dynamic"
+      #gethomepage.dev/icon: "homepage.png"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: home.perihelion.host
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - hosts:
+          - home.perihelion.host
+        secretName: home-perihelion-host
