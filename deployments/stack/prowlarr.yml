@@ -16,6 +16,43 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
+  name: prowlarr-downloads-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: prowlarr-downloads-pv
+    nodeStageSecretRef:
+      name: prowlarr-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: prowlarr-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.201:6789
+      rootPath: /downloads
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prowlarr-downloads-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: prowlarr-downloads-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
   name: prowlarr-config-pv
 spec:
   storageClassName: local-path
@@ -33,8 +70,8 @@ spec:
       name: prowlarr-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/prowlarr
+      monitors: 192.168.1.201:6789
+      rootPath: /containervolumes/prowlarr
       provisionVolume: "false"
 ---
 apiVersion: v1
@@ -78,10 +115,16 @@ spec:
         volumeMounts:
         - name: prowlarr-config
           mountPath: /config
+        - name: prowlarr-downloads
+          mountPath: /downloads
       volumes:
       - name: prowlarr-config
         persistentVolumeClaim:
           claimName: prowlarr-config-pvc
+          readOnly: false
+      - name: prowlarr-downloads
+        persistentVolumeClaim:
+          claimName: prowlarr-downloads-pvc
           readOnly: false
 ---
 apiVersion: networking.k8s.io/v1

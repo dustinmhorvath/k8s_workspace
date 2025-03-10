@@ -33,7 +33,7 @@ spec:
       name: sonarr-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      monitors: 192.168.1.201
       rootPath: /downloads
       provisionVolume: "false"
 ---
@@ -70,7 +70,7 @@ spec:
       name: sonarr-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      monitors: 192.168.1.201:6789
       rootPath: /tv
       provisionVolume: "false"
 ---
@@ -107,8 +107,8 @@ spec:
       name: sonarr-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/sonarr
+      monitors: 192.168.1.201:6789
+      rootPath: /containervolumes/sonarr
       provisionVolume: "false"
 ---
 apiVersion: v1

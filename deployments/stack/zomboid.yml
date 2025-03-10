@@ -9,18 +9,22 @@ spec:
   selector:
     app: zomboid
   ports:
-    - name: zomboid-8766
-      port: 8766
-      protocol: UDP
-      targetPort: zomboid-8766
-    - name: zomboid-8767
-      port: 8767
-      protocol: UDP
-      targetPort: zomboid-8767
-    - name: zomboid-16261
+#    - name: zomboid-8766
+#      port: 8766
+#      protocol: UDP
+#      targetPort: zomboid-8766
+#    - name: zomboid-8767
+#      port: 8767
+#      protocol: UDP
+#      targetPort: zomboid-8767
+    - name: zomboid-16261u
       port: 16261
       protocol: UDP
-      targetPort: zomboid-16261
+      targetPort: zomboid-16261u
+    - port: 16262
+      name: zomboid-16262u
+      protocol: UDP
+      targetPort: zomboid-16262u
   loadBalancerIP: 192.168.1.211
   type: LoadBalancer
 ---
@@ -36,93 +40,60 @@ spec:
   selector:
     app: zomboid
   ports:
+    - name: zomboid-16261
+      port: 16261
+      protocol: TCP
+      targetPort: zomboid-16261
     - port: 16262
       name: zomboid-16262
       protocol: TCP
       targetPort: zomboid-16262
-    - port: 16263
-      name: zomboid-16263
-      protocol: TCP
-      targetPort: zomboid-16263
-    - port: 16264
-      name: zomboid-16264
-      protocol: TCP
-      targetPort: zomboid-16264
-    - port: 16265
-      name: zomboid-16265
-      protocol: TCP
-      targetPort: zomboid-16265
-    - port: 16266
-      name: zomboid-16266
-      protocol: TCP
-      targetPort: zomboid-16266
-    - port: 16267
-      name: zomboid-16267
-      protocol: TCP
-      targetPort: zomboid-16267
-    - port: 16268
-      name: zomboid-16268
-      protocol: TCP
-      targetPort: zomboid-16268
-    - port: 16269
-      name: zomboid-16269
-      protocol: TCP
-      targetPort: zomboid-16269
-    - port: 16270
-      name: zomboid-16270
-      protocol: TCP
-      targetPort: zomboid-16270
-    - port: 16271
-      name: zomboid-16271
-      protocol: TCP
-      targetPort: zomboid-16271
-    - port: 16272
-      name: zomboid-16272
-      protocol: TCP
-      targetPort: zomboid-16272
-    - port: 27015
-      name: zomboid-27015
-      protocol: TCP
-      targetPort: zomboid-27015
+#    - port: 16263
+#      name: zomboid-16263
+#      protocol: TCP
+#      targetPort: zomboid-16263
+#    - port: 16264
+#      name: zomboid-16264
+#      protocol: TCP
+#      targetPort: zomboid-16264
+#    - port: 16265
+#      name: zomboid-16265
+#      protocol: TCP
+#      targetPort: zomboid-16265
+#    - port: 16266
+#      name: zomboid-16266
+#      protocol: TCP
+#      targetPort: zomboid-16266
+#    - port: 16267
+#      name: zomboid-16267
+#      protocol: TCP
+#      targetPort: zomboid-16267
+#    - port: 16268
+#      name: zomboid-16268
+#      protocol: TCP
+#      targetPort: zomboid-16268
+#    - port: 16269
+#      name: zomboid-16269
+#      protocol: TCP
+#      targetPort: zomboid-16269
+#    - port: 16270
+#      name: zomboid-16270
+#      protocol: TCP
+#      targetPort: zomboid-16270
+#    - port: 16271
+#      name: zomboid-16271
+#      protocol: TCP
+#      targetPort: zomboid-16271
+#    - port: 16272
+#      name: zomboid-16272
+#      protocol: TCP
+#      targetPort: zomboid-16272
+#    - port: 27015
+#      name: zomboid-27015
+#      protocol: TCP
+#      targetPort: zomboid-27015
   loadBalancerIP: 192.168.1.211
   type: LoadBalancer
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: zomboid-installation-pv
-spec:
-  storageClassName: local-path
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  csi:
-    driver: cephfs.csi.ceph.com
-    volumeHandle: zomboid-installation-pv
-    nodeStageSecretRef:
-      name: docker-ceph
-      namespace: default
-    nodePublishSecretRef:
-      name: docker-ceph
-      namespace: default
-    volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: '/docker/zomboid/installation'
-      provisionVolume: "false"
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: zomboid-installation-pvc
-spec:
-  storageClassName: local-path
-  accessModes:
-   - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  volumeName: zomboid-installation-pv
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -138,14 +109,14 @@ spec:
     driver: cephfs.csi.ceph.com
     volumeHandle: zomboid-config-pv
     nodeStageSecretRef:
-      name: docker-ceph
+      name: zomboid-ceph
       namespace: default
     nodePublishSecretRef:
-      name: docker-ceph
+      name: zomboid-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/zomboid/config
+      monitors: 192.168.1.201:6789
+      rootPath: /containervolumes/zomboid
       provisionVolume: "false"
 ---
 apiVersion: v1
@@ -182,51 +153,57 @@ spec:
         image: renegademaster/zomboid-dedicated-server
         imagePullPolicy: Always
         ports:
-          - name: zomboid-8766
-            containerPort: 8766
-            protocol: UDP
-          - name: zomboid-8767
-            containerPort: 8767
+#          - name: zomboid-8766
+#            containerPort: 8766
+#            protocol: UDP
+#          - name: zomboid-8767
+#            containerPort: 8767
+#            protocol: UDP
+          - name: zomboid-16261u
+            containerPort: 16261
             protocol: UDP
           - name: zomboid-16261
             containerPort: 16261
+            protocol: TCP
+          - name: zomboid-16262u
+            containerPort: 16262
             protocol: UDP
           - name: zomboid-16262
             containerPort: 16262
             protocol: TCP
-          - name: zomboid-16263
-            containerPort: 16263
-            protocol: TCP
-          - name: zomboid-16264
-            containerPort: 16264
-            protocol: TCP
-          - name: zomboid-16265
-            containerPort: 16265
-            protocol: TCP
-          - name: zomboid-16266
-            containerPort: 16266
-            protocol: TCP
-          - name: zomboid-16267
-            containerPort: 16267
-            protocol: TCP
-          - name: zomboid-16268
-            containerPort: 16268
-            protocol: TCP
-          - name: zomboid-16269
-            containerPort: 16269
-            protocol: TCP
-          - name: zomboid-16270
-            containerPort: 16270
-            protocol: TCP
-          - name: zomboid-16271
-            containerPort: 16271
-            protocol: TCP
-          - name: zomboid-16272
-            containerPort: 16272
-            protocol: TCP
-          - name: zomboid-27015
-            containerPort: 27015
-            protocol: TCP
+#          - name: zomboid-16263
+#            containerPort: 16263
+#            protocol: TCP
+#          - name: zomboid-16264
+#            containerPort: 16264
+#            protocol: TCP
+#          - name: zomboid-16265
+#            containerPort: 16265
+#            protocol: TCP
+#          - name: zomboid-16266
+#            containerPort: 16266
+#            protocol: TCP
+#          - name: zomboid-16267
+#            containerPort: 16267
+#            protocol: TCP
+#          - name: zomboid-16268
+#            containerPort: 16268
+#            protocol: TCP
+#          - name: zomboid-16269
+#            containerPort: 16269
+#            protocol: TCP
+#          - name: zomboid-16270
+#            containerPort: 16270
+#            protocol: TCP
+#          - name: zomboid-16271
+#            containerPort: 16271
+#            protocol: TCP
+#          - name: zomboid-16272
+#            containerPort: 16272
+#            protocol: TCP
+#          - name: zomboid-27015
+#            containerPort: 27015
+#            protocol: TCP
         env:
         - name: TZ
           value: America/Chicago
@@ -236,30 +213,33 @@ spec:
           # This isn't exposed anyway
           value: "hereisalongpassword"
         - name: SERVER_PASSWORD
-          value: "sometestpasswordherederp"
+          valueFrom:
+            secretKeyRef:
+              name: zomboid-server-password
+              key: server-password
         - name: STEAM_VAC
           value: "false"
+        - name: USE_STEAM
+          value: "true"
         - name: MOD_NAMES
-          value: "ModManager;tsarslib;RotatorsLib;Diederiks Tile Palooza;EN_Newburbs;BigZombieMonkeys_tile_pack;SkizotsTiles;DylansTiles;tkTiles_01;InGameMaps;Elysium_Island;Gasstationradowl;Riverwood;Seaside;Chestown;Ashenwood;rbrA2;rbr;MonmouthCounty;RabbitHashKY;Fort Rock Ridge;InGameMaps_Glenport;Glenport;InGameMaps_FortRedstone;FORTREDSTONE;OtrSR;InGameMaps_FortKnoxRoad;FortKnoxRoad;InGameMaps_EerieCountry;EerieCountry;InGameMaps_WestPointExpansion;WestPointExpansion;InGameMaps_FortKnoxLinked;FortKnoxLinked;Otr;WPEFIX;BedfordFalls;Blackwood;Fort Benning;Grapeseed;lakeivytownship;LittleTownship;NewEkron;Pitstop;RavenCreek;MoreMaps;northpeak;autotsartrailers;Better Belts;BetterSortCC;MoreDescriptionForTraits4166;Brita_2;Brita;Arsenal(26)GunFighter;modoptions;78amgeneralM35A2;78amgeneralM49A2C;84merc;ATA_Bus;AnaLGiNs_RenewableFoodResources;amclub;ATA_Dadge;ATA_Mustang;ATA_Jeep;ATA_Luton;ATA_Petyarbuilt;Kaldo_CarDashboardRadioButton;MoreCLR_desc4mood;FishingPlus;FencingKits;ExtraMapSymbols;ExtraMapSymbolsUI;bmacGloveboxRepair;ISA;MetalSpear;manageContainers;MapLegendUI;NamedSkillVHSTapes;nattachments;myclothinguimod;ProximityInventory;Kaldo_RadioFrequencyManager;RepairRoads;RepairWallCracks;SmokinJoesCoolers;snowiswaterbeta;TheyKnew;DaszhVehicleChime;VehicleRepairOverhaul;rSex;FC4WT;TheStar;rSemiTruck;CraftHelper41;WestPointExpansionAddonLootMap;AquatsarYachtClub;blkt_invtrack"
+          value: "ModManager;ModManagerServer;modoptions;78amgeneralM35A2;Arsenal(26)GunFighter[MAIN MOD 2.0];BigZombieMonkeys_tile_pack;Brita;Diederiks Tile Palooza;DylansTiles;EerieCountry;FORTREDSTONE;FortKnoxLinked;FortKnoxRoad;Glenport;InGameMaps;LitSortOGSN;PertsPartyTiles;RotatorsLib;WestPointExpansion;damnlib;melos_tiles_for_miles_pack;tkTiles_01;tsarslib;92jeepYJ;amclub;rbr;Ashenwood;BedfordFalls;Blackwood;Chestown;Crowlake;DeltaCreekMunitions;Elysium_Island;Fort Benning;Fort Rock Ridge;Gasstationradowl;Grapeseed;InGameMaps_EerieCountry;InGameMaps_FortKnoxLinked;InGameMaps_FortKnoxRoad;InGameMaps_FortRedstone;InGameMaps_Glenport;InGameMaps_WestPointExpansion;LCv2;LittleTownship;MonmouthCounty_new;NewEkron;Otr;OtrSR;Pitstop;RabbitHashKY;RavenCreek;RfMCtBF_addon;Seaside;WPEFIX;lakeivytownship;northpeak;pineville;rbrA2;Kaldo_CarDashboardRadioButton;TheStar;63Type2Van;67commando;74amgeneralM151A2;78amgeneralM49A2C;78amgeneralM50A3;78amgeneralM62;80kz1000;82oshkoshM911;83amgeneralM923;84gageV300;86oshkoshP19A;87fordB700;92amgeneralM998;92jeepYJJP18;93fordF350;97bushmaster;ATA_Bus;ATA_Dadge;ATA_Jeep;ATA_Luton;ATA_Mustang;ATA_Petyarbuilt;ATA_VanDeRumba;AquatsarYachtClub;Better Belts;BetterSortCC;Brita_2;DaszhVehicleChime;ISA;LesstroCrate;LitSortOGSN_chocolate;LitSortOGSN_diamond;LitSortOGSN_gold;LitSortOGSN_readOnePage;LitSortOGSN_rice;MapLegendUI;MetalSpear;MoreCLR_desc4mood;MoreDescriptionForTraits4166;MoreMaps;NamedSkillVHSTapes;ProximityInventory;Scrap Katana;SimpleConvertToBritaSRC;VISIBLE_BACKPACK_BACKGROUND;VehicleRepairOverhaul;autotsartrailers;blkt_invtrack;bmacGloveboxRepair;manageContainers;moodle_quarters;myclothinguimod;rSemiTruck"
         - name: MOD_WORKSHOP_IDS
-          value: "2595249356;1254546530;2595785944;522891356;2536865912;2693585128;2490642410;2463499011;2252982049;2542249811;2712480036;2599752664;2597946327;2196102849;2195155059;2729427093;2384329562;2694448564;2756689895;2779961581;2805994608;1516836158;926737806;2603239477;2392709985;2282429356;2127583399;2313387159;2685168362;2460154811;2200148440;2297098490;2169435993;2799152995;2805630347;2592358528;2688622178;2778576730;2743496289;2681635926;2636100523;2792425535;2782258356;2736059670;2763647806;2757633688;2812828771;2701170568;2812770464;2623458493;2613871263;2650547917;2710167561;2732294885;2754567348;2695471997;2847184718;2735294987;2746843062;2746736222;2783635181;2704811006;2725378876;2742869038;2757712197;2681257693;2752895143;2619072426;2759339330;2732594572;2820363371;2337452747;2804428637;2840889213;2186592938;2819655145;2774834715;2806456685;2804453891;2815966702;2814786260;2807152393;2802298898;2783179512;2740919036;2199111256;2392987599;2809595776"
+          value: "2595249356;1254546530;2595785944;522891356;2536865912;2693585128;2490642410;2463499011;2252982049;2542249811;2712480036;2599752664;2597946327;2196102849;2195155059;2729427093;2384329562;2694448564;2756689895;2779961581;2805994608;1516836158;926737806;2603239477;2392709985;2282429356;2127583399;2313387159;2685168362;2725216703;2820363371;2337452747;2681635926;2636100523;2782258356;2811232708;2743496289;2592358528;2169435993;2785549133;2799152995;2818847163;2778576730;2809595776;2071347174;2808679062;2840889213;2812770464;2623458493;2710167561;2613871263;2854030563;2732294885;2695471997;2847184718;2460154811;2200148440;2763647806;2736059670;2619072426;2297098490;2742869038;2757712197;2804428637;2392987599;3171167894;3041122351;2478247379;2618213077;2811383142;3171184800;2566953935;3110911330;2642541073;3287727378;2897390033;2792425535;3236566430;2879745353;2789237738;2806456685;3168493410;3183799205;2815966702;2814786260;2807152393;3051622511;2837923608;2887123503;2759339330;2732594572;2650547917;3013564297;2783179512;2696120270;2944975401;2819655145;3073430075"
         - name: MAP_NAMES
-          value: "Gasstationradowl;researchbaseroad;researchbase;Fort Rock Ridge;Elysium_Island;Seaside;RabbitHashKY;Fort Knox linked to Eerie Country;Fort Knox linked to Eerie Country_map;Near Fort Knox;To Eerie Country;Eerie Country;Eerie A;Eerie B;Eerie C;Eerie D;From Bedford Falls to Fort Knox;From Bedford Falls to Fort Knox_map;To Bedford Falls;BedfordFalls;North;South;West;Blackwood;Fort Benning;Glenport;Glenport_map;Grapeseed;li_township;LittleTownship;FortRedstone;FortRedstone_map;NewEkron;Riverwood;Chestown;MonmouthCounty;Ashenwood;Pitstop;RavenCreek;WestPointExpansionFix;west_point_expansion;west_point_expansion_map;Over the River - Secondary Route;Otr;NortthPeak;Muldraugh, KY"
+          value: "Road from Monmouth County to Bedford Falls;Fort Knox linked to Eerie Country_map;From Bedford Falls to Fort Knox_map;FortRedstone_map;Glenport_map;WestPointExpansionFix;west_point_expansion_map;west_point_expansion;Riverwood;Glenport;FortRedstone;Over the River - Secondary Route;Near Fort Knox;From Bedford Falls to Fort Knox;Fort Knox linked to Eerie Country;To Eerie Country;To Bedford Falls;MonmouthCounty;Eerie Country;Eerie A;Eerie B;Eerie C;Eerie D;Otr;BedfordFalls;Blackwood;Fort Benning;Grapeseed;LittleTownship;NewEkron;Pitstop;RavenCreek;NortthPeak;li_township;Ashenwood;Chestown;researchbaseroad;researchbase;North;West;South;Crowlake;Riverdeltabase;Elysium_Island;Fort Rock Ridge;Gasstationradowl;PineVille;Muldraugh, KY"
         - name: PAUSE_ON_EMPTY
           value: "true"
         - name: MAX_RAM
-          value: "8192m"
+          value: "16384m"
         volumeMounts:
         - name: zomboid-config
           mountPath: /home/steam/Zomboid/
-        - name: zomboid-installation
+          subPath: config
+        - name: zomboid-config
           mountPath: /home/steam/ZomboidDedicatedServer/
+          subPath: installation
       volumes:
       - name: zomboid-config
         persistentVolumeClaim:
           claimName: zomboid-config-pvc
-          readOnly: false
-      - name: zomboid-installation
-        persistentVolumeClaim:
-          claimName: zomboid-installation-pvc
           readOnly: false

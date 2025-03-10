@@ -38,14 +38,14 @@ spec:
     driver: cephfs.csi.ceph.com
     volumeHandle: satisfactory-config-pv
     nodeStageSecretRef:
-      name: docker-ceph
+      name: satisfactory-ceph
       namespace: default
     nodePublishSecretRef:
-      name: docker-ceph
+      name: satisfactory-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/satisfactory/
+      monitors: 192.168.1.201:6789
+      rootPath: /containervolumes/satisfactory/
       provisionVolume: "false"
 ---
 apiVersion: v1
@@ -77,13 +77,13 @@ spec:
         app: satisfactory # has to match .spec.selector.matchLabels
     spec:
       terminationGracePeriodSeconds: 30
-      nodeSelector:
-        exclusive: "yes"
-      tolerations:
-      - key: "exclusive"
-        operator: "Equal"
-        value: "yes"
-        effect: "NoSchedule"
+#      nodeSelector:
+#        exclusive: "yes"
+#      tolerations:
+#      - key: "exclusive"
+#        operator: "Equal"
+#        value: "yes"
+#        effect: "NoSchedule"
       containers:
       - name: satisfactory
         image: wolveix/satisfactory-server:latest
@@ -107,6 +107,12 @@ spec:
           value: "true"
         - name: SKIPUPDATE
           value: "false"
+        - name: AUTOSAVEINTERVAL
+          value: "600"
+        - name: NETWORKQUALITY
+          value: "5"
+        - name: MAXTICKRATE
+          value: "60"
         volumeMounts:
         - name: satisfactory-config
           mountPath: /config/

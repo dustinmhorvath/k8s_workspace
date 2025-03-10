@@ -32,7 +32,7 @@ spec:
       name: qbittorrent-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      monitors: 192.168.1.201:6789
       rootPath: /downloads
       provisionVolume: "false"
 ---
@@ -69,8 +69,8 @@ spec:
       name: qbittorrent-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/qbittorrent
+      monitors: 192.168.1.201
+      rootPath: /containervolumes/qbittorrent
       provisionVolume: "false"
 ---
 apiVersion: v1

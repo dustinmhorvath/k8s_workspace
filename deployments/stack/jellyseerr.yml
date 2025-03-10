@@ -33,8 +33,8 @@ spec:
       name: jellyseerr-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/jellyseerr
+      monitors: 192.168.1.201:6789
+      rootPath: /containervolumes/jellyseerr
       provisionVolume: "false"
 ---
 apiVersion: v1

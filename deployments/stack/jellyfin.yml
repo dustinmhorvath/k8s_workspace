@@ -33,7 +33,7 @@ spec:
       name: jellyfin-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      monitors: 192.168.1.201:6789
       rootPath: /books
       provisionVolume: "false"
 ---
@@ -57,7 +57,7 @@ spec:
       name: jellyfin-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      monitors: 192.168.1.201:6789
       rootPath: /movies
       provisionVolume: "false"
 ---
@@ -107,7 +107,7 @@ spec:
       name: jellyfin-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      monitors: 192.168.1.201:6789
       rootPath: /tv
       provisionVolume: "false"
 ---
@@ -144,7 +144,7 @@ spec:
       name: jellyfin-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
+      monitors: 192.168.1.201:6789
       rootPath: /music
       provisionVolume: "false"
 ---
@@ -168,7 +168,7 @@ metadata:
 spec:
   storageClassName: local-path
   capacity:
-    storage: 5Gi
+    storage: 15Gi
   accessModes:
     - ReadWriteOnce
   csi:
@@ -181,8 +181,8 @@ spec:
       name: jellyfin-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/jellyfin
+      monitors: 192.168.1.201:6789
+      rootPath: /containervolumes/jellyfin
       provisionVolume: "false"
 ---
 apiVersion: v1
@@ -195,7 +195,7 @@ spec:
    - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 15Gi
   volumeName: jellyfin-config-pv
 ---
 apiVersion: apps/v1
