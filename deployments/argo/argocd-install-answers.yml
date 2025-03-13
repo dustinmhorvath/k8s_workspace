@@ -1,0 +1,21 @@
+
+global:
+  domain: argo.perihelion.host
+
+configs:
+  params:
+    server.insecure: true
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    extraTls:
+      - hosts:
+        - argo.perihelion.host
+        # Based on the ingress controller used secret might be optional
+        secretName: argo-perihelion-host
