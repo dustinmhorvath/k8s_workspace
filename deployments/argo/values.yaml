@@ -2,6 +2,7 @@ spec:
   destination:
     server: https://kubernetes.default.svc
   source:
-    repoURL: https://github.com/dustinmhorvath/k8s_workspace/deployments/argo
+    repoURL: https://github.com/dustinmhorvath/k8s_workspace.git
     targetRevision: HEAD
+    path: deployments/argo
 
