@@ -19,8 +19,8 @@ spec:
       name: redbot-ceph
       namespace: default
     volumeAttributes:
-      monitors: 192.168.1.131:6789,192.168.1.132:6789,192.168.1.133:6789
-      rootPath: /docker/redbot
+      monitors: 192.168.1.201:6789
+      rootPath: /containervolumes/redbot
       provisionVolume: "false"
 ---
 apiVersion: v1
@@ -56,12 +56,15 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
       - name: redbot
-        image: phasecorex/red-discordbot:latest
+        image: phasecorex/red-discordbot:full
         imagePullPolicy: Always
         env:
           # TODO: Get this from k8s secret instead, since sensitive
-#        - name: TOKEN
-#          value: ""
+        - name: TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: redbot-token
+              key: token
         - name: PREFIX
           value: '!'
         - name: TZ
