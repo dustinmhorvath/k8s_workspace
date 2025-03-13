@@ -150,6 +150,7 @@ spec:
       containers:
       - name: sonarr
         image: linuxserver/sonarr:latest
+        imagePullPolicy: Always
         env:
         - name: TZ
           value: America/Chicago
@@ -187,7 +188,6 @@ metadata:
   annotations:
     #nginx.ingress.kubernetes.io/rewrite-target: /
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-
 spec:
   rules:
   - host: sonarr.perihelion.host
