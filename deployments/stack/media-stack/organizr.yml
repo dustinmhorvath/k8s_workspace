@@ -62,7 +62,7 @@ spec:
     matchLabels:
       app: organizr # has to match .spec.template.metadata.labels
   serviceName: "organizr"
-  replicas: 1
+  replicas: 0
   template:
     metadata:
       labels:
