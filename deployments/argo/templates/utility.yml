@@ -14,3 +14,10 @@ spec:
     path: deployments/stack/utility
     repoURL: {{ .Values.spec.source.repoURL }}
     targetRevision: {{ .Values.spec.source.targetRevision }}
+  syncPolicy:
+    syncOptions:
+    - PrunePropagationPolicy=foreground
+    automated:
+      automated: {}
+      prune: true
+      selfHeal: true
