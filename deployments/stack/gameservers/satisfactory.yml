@@ -70,7 +70,7 @@ spec:
     matchLabels:
       app: satisfactory # has to match .spec.template.metadata.labels
   serviceName: "satisfactory"
-  replicas: 1
+  replicas: 0
   template:
     metadata:
       labels:
