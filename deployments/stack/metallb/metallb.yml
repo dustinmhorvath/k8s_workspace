@@ -11,7 +11,7 @@ spec:
     repoURL: https://metallb.github.io/metallb
     helm:
       releaseName: metallb
-      targetRevision: latest
+    targetRevision: latest
   destination:
     server: "https://kubernetes.default.svc"
     namespace: metallb-system
