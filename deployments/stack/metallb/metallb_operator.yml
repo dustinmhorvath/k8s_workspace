@@ -3,14 +3,12 @@ kind: Application
 metadata:
   name: metallb-operator
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/hook: PreSync
 spec:
   project: default
   source:
     repoURL: https://github.com/metallb/metallb-operator.git
     targetRevision: HEAD
-    path: bin/metallb-operator
+    path: bin/metallb-operator.yml
   destination:
     server: "https://kubernetes.default.svc"
     namespace: metallb-system
