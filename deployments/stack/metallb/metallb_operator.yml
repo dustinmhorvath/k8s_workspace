@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/metallb/metallb-operator.git
     targetRevision: HEAD
-    path: bin/metallb-operator.yml
+    path: bin
   destination:
     server: "https://kubernetes.default.svc"
     namespace: metallb-system
