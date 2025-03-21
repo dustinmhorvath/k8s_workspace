@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: metallb
+  name: metallb-helm
   namespace: argocd
 spec:
   project: default
@@ -11,6 +11,7 @@ spec:
     repoURL: https://metallb.github.io/metallb
     helm:
       releaseName: metallb
+      targetRevision: latest
   destination:
     server: "https://kubernetes.default.svc"
     namespace: metallb-system
