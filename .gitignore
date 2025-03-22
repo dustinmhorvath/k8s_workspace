@@ -4,3 +4,4 @@ infrastructure/kubespray
 infrastructure/.env
 infrastructure/terraform/.terraform
 infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/rke2_ansible/kustomize
