@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ceph-csi-cephfs
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: ceph-csi/ceph-csi-cephfs
+    repoURL: https://ceph.github.io/csi-charts
+    targetRevision: HEAD
+    helm:
+      releaseName: ceph-csi-cephfs
+      valuesObject:
+        storageClass:
+          create: true
+        readAffinity:
+          enabled: true
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: ceph-csi-cephfs
