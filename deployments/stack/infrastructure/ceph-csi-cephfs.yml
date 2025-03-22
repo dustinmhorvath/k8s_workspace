@@ -8,7 +8,7 @@ spec:
   source:
     chart: ceph-csi/ceph-csi-cephfs
     repoURL: https://ceph.github.io/csi-charts
-    targetRevision: HEAD
+    targetRevision: 3.13.1
     helm:
       releaseName: ceph-csi-cephfs
       valuesObject:
