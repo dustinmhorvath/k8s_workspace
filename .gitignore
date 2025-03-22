@@ -2,3 +2,5 @@
 *.tfstate.backup
 infrastructure/kubespray
 infrastructure/.env
+infrastructure/terraform/.terraform
+infrastructure/terraform/.terraform.lock.hcl
