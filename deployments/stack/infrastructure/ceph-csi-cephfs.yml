@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    chart: ceph-csi/ceph-csi-cephfs
+    chart: ceph-csi-cephfs
     repoURL: https://ceph.github.io/csi-charts
     targetRevision: 3.13.1
     helm:
