@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     chart: jetstack/cert-manager
-    repoURL: 
+    repoURL: https://charts.jetstack.io
     targetRevision: HEAD
     helm:
       releaseName: cert-manager
