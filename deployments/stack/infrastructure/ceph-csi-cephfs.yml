@@ -16,6 +16,8 @@ spec:
           create: true
         readAffinity:
           enabled: true
+        provisioner:
+          replicaCount: 1
   destination:
     server: "https://kubernetes.default.svc"
     namespace: ceph-csi-cephfs
