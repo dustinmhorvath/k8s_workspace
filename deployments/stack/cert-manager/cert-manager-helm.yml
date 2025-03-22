@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: jetstack/cert-manager
+    repoURL: 
+    targetRevision: HEAD
+    helm:
+      releaseName: cert-manager
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: cert-manager
+
+
+    - name: Apply cert-manager config
+      register: cm_config
+      until: cm_config is not failed
+      retries: 5
+      delay: 10
+      kubernetes.core.k8s:
+        definition: "{{ lookup('file', item ) | from_yaml }}"
+        state: present
+        apply: yes
+      loop:
+        - 00_letsencrypt_nginx_prod.yml
+        - 00_letsencrypt_nginx.yml
