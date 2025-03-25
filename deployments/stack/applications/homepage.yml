@@ -8,7 +8,7 @@ spec:
   source:
     chart: homepage
     repoURL: http://jameswynn.github.io/helm-charts
-    targetRevision: HEAD
+    targetRevision: 2.0.2
     helm:
       releaseName: homepage
       valueFiles:
