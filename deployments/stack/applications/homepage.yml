@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sealed-secrets
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: homepage
+    repoURL: http://jameswynn.github.io/helm-charts
+    targetRevision: HEAD
+    helm:
+      releaseName: homepage
+      valueFiles:
+      - homepage_answers.yml
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: default
