@@ -12,7 +12,11 @@ spec:
     helm:
       releaseName: homepage
       valueFiles:
-      - deployments/stack/applications/homepage_answers.yml
+      - $homepage_values/deployments/stack/applications/homepage_values.yml
+  - repoURL: 'https://github.com/dustinmhorvath/k8s_workspace.git'
+    targetRevision: main
+    ref: homepage_values
+
   destination:
     server: "https://kubernetes.default.svc"
     namespace: default
