@@ -12,7 +12,7 @@ spec:
     helm:
       releaseName: homepage
       valueFiles:
-      - $homepage_values/deployments/stack/applications/homepage_values.yml
+      - $homepage_values/deployments/stack/applications/homepage_answers.yml
   - repoURL: 'https://github.com/dustinmhorvath/k8s_workspace.git'
     targetRevision: main
     ref: homepage_values
