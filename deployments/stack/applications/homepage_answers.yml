@@ -1,5 +1,5 @@
 env:
-  HOMEPAGE_ALLOWED_HOSTS: home.perihelion.host:3000
+  HOMEPAGE_ALLOWED_HOSTS: home.perihelion.host
   HOMEPAGE_VAR_TOKEN_PROXMOX_PASSWORD:
     valueFrom:
       secretKeyRef:
