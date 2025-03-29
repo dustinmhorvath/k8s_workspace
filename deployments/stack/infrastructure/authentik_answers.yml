@@ -33,10 +33,7 @@ server:
       #gethomepage.dev/icon: "homepage.png"
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
     hosts:
-      - host: auth.perihelion.host
-        paths:
-          - path: /
-            pathType: Prefix
+      - auth.perihelion.host
     tls:
       - hosts:
           - auth.perihelion.host
