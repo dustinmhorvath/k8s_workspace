@@ -1,20 +1,17 @@
-env:
-  AUTHENTIK_SECRET_KEY:
+authentik:
+  secret_key:
     valueFrom:
       secretKeyRef:
         name: authentik-secret-key
         key: secret-key
-  AUTHENTIK_POSTGRES_PASSWORD:
-    valueFrom:
-      secretKeyRef:
-        name: authentik-postgres-password
-        key: password
-authentik:
-  secret_key: "{{AUTHENTIK_SECRET_KEY}}"
   error_reporting:
     enabled: true
   postgresql:
-    password: "{{AUTHENTIK_POSTGRES_PASSWORD}}"
+    password:
+      valueFrom:
+        secretKeyRef:
+          name: authentik-postgres-password
+          key: password
 
 server:
   ingress:
@@ -43,7 +40,11 @@ server:
 postgresql:
   enabled: true
   auth:
-    password: "{{AUTHENTIK_POSTGRES_PASSWORD}}"
+    password:
+      valueFrom:
+        secretKeyRef:
+          name: authentik-postgres-password
+          key: password
 redis:
   enabled: true
 
