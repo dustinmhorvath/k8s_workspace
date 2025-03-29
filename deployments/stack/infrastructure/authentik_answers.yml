@@ -1,17 +1,24 @@
-authentik:
-  secret_key:
-    valueFrom:
-      secretKeyRef:
-        name: authentik-secret-key
-        key: secret-key
-  error_reporting:
-    enabled: true
-  postgresql:
-    password:
+global:
+  env:
+    - name: AUTHENTIK_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: authentik-secret-key
+          key: secret-key
+      # Doing my best to parse through the horrendously shit documentation on Authentik's configuration page for these vars. I'm trying to cobble these together from a lot of conflicting examples at https://docs.goauthentik.io/docs/install-config/configuration/#postgresql-settings and the actual chart here https://github.com/goauthentik/helm/blob/main/charts/authentik/values.yaml
+    - name: AUTHENTIK_POSTGRES__PASSWORD
       valueFrom:
         secretKeyRef:
           name: authentik-postgres-password
           key: password
+    - name: POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-postgres-password
+          key: password
+authentik:
+  error_reporting:
+    enabled: true
 
 server:
   ingress:
@@ -39,12 +46,6 @@ server:
 
 postgresql:
   enabled: true
-  auth:
-    password:
-      valueFrom:
-        secretKeyRef:
-          name: authentik-postgres-password
-          key: password
 redis:
   enabled: true
 
