@@ -24,8 +24,6 @@ server:
   ingress:
     ingressClassName: nginx
     enabled: true
-    hosts:
-      - auth.perihelion.host
     annotations:
       # Example annotations to add Homepage to your Homepage!
       #gethomepage.dev/enabled: "true"
