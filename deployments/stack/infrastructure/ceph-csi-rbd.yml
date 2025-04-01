@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ceph-csi-rbd
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: ceph-csi-rbd
+    repoURL: https://ceph.github.io/csi-charts
+    targetRevision: 3.*
+    helm:
+      releaseName: ceph-csi-rbd
+      valuesObject:
+        storageClass:
+          create: true
+          pool: kubernetes
+          allowVolumeExpansion: true
+          reclaimPolicy: Delete
+          clusterID: f1f55ada-1575-47be-9c2e-76167142a716
+        csiConfig:
+          - clusterID: "f1f55ada-1575-47be-9c2e-76167142a716"
+            monitors:
+              - "192.168.1.201:6789"
+            rbd:
+              netNamespaceFilePath: "{{ .kubeletDir }}/plugins/{{ .driverName }}/net"
+              mirrorDaemonCount: 1
+            readAffinity:
+              enabled: true
+              crushLocationLabels:
+                - topology.kubernetes.io/region
+                - topology.kubernetes.io/zone
+        provisioner:
+          replicaCount: 1
+
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: ceph-csi-rbd
