@@ -11,6 +11,11 @@ global:
         secretKeyRef:
           name: authentik-postgres-password
           key: password
+    - name: AUTHENTIK_POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-postgres-password
+          key: password
     - name: POSTGRES_PASSWORD
       valueFrom:
         secretKeyRef:
