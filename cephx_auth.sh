@@ -20,3 +20,5 @@ ceph fs authorize cephfs client.satisfactory / r /containervolumes/satisfactory 
 ceph fs authorize cephfs client.homeassistant / r /containervolumes/homeassistant rw
 ceph fs authorize cephfs client.zomboid / r /containervolumes/zomboid rw
 ceph fs authorize cephfs client.mqtt / r /containervolumes/mqtt rw
+
+ceph auth get-or-create client.kubernetes mon 'profile rbd' osd 'profile rbd pool=kubernetes' mgr 'profile rbd pool=kubernetes'
