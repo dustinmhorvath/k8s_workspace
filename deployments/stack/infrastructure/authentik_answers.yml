@@ -40,9 +40,9 @@ postgresql:
     extendedConfiguration: |
       max_connections = 500
     resourcesPreset: "none"
-      persistence:
-        enabled: true
-        storageClass: csi-rbd-sc
-        accessModes:
-          - ReadWriteOnce
+    persistence:
+      enabled: true
+      storageClass: csi-rbd-sc
+      accessModes:
+        - ReadWriteOnce
 
