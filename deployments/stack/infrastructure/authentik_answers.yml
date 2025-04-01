@@ -36,7 +36,13 @@ server:
 
 postgresql:
   enabled: true
-
-redis:
-  enabled: true
+  primary:
+    extendedConfiguration: |
+      max_connections = 500
+    resourcesPreset: "none"
+      persistence:
+        enabled: true
+        storageClass: csi-rbd-sc
+        accessModes:
+          - ReadWriteOnce
 
