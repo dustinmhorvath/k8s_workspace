@@ -24,6 +24,7 @@ global:
 authentik:
   error_reporting:
     enabled: true
+  secret_key: "{{AUTHENTIK_SECRET_KEY}}"
 
 server:
   ingress:
@@ -46,6 +47,7 @@ server:
 
 postgresql:
   enabled: true
+  password: "{{AUTHENTIK_POSTGRES_PASSWORD}}"
 
 redis:
   enabled: true
