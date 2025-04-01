@@ -44,9 +44,9 @@ server:
           - auth.perihelion.host
         secretName: auth-perihelion-host
 
-#postgresql:
-#  enabled: true
-#
-#redis:
-#  enabled: true
+postgresql:
+  enabled: true
+
+redis:
+  enabled: true
 
