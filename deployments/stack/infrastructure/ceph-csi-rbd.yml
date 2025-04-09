@@ -20,16 +20,19 @@ spec:
           pool: kubernetes
           allowVolumeExpansion: true
           reclaimPolicy: Delete
-          clusterID: f1f55ada-1575-47be-9c2e-76167142a716
+          clusterID: "f1f55ada-1575-47be-9c2e-76167142a716"
         csiConfig:
           - clusterID: "f1f55ada-1575-47be-9c2e-76167142a716"
             monitors:
               - "192.168.1.201:6789"
-#            readAffinity:
-#              enabled: true
-#              crushLocationLabels:
-#                - topology.kubernetes.io/region
-#                - topology.kubernetes.io/zone
+            rbd:
+              netNamespaceFilePath: "{{ .kubeletDir }}/plugins/{{ .driverName }}/net"
+              mirrorDaemonCount: 1
+            readAffinity:
+              enabled: true
+              crushLocationLabels:
+                - topology.kubernetes.io/region
+                - topology.kubernetes.io/zone
         provisioner:
           replicaCount: 1
 
