@@ -22,13 +22,13 @@ spec:
           - clusterID: "f1f55ada-1575-47be-9c2e-76167142a716"
             monitors:
               - "192.168.1.201:6789"
-            readAffinity:
-              enabled: true
-              crushLocationLabels:
-                - topology.kubernetes.io/region
-                - topology.kubernetes.io/zone
+#            readAffinity:
+#              enabled: true
+#              crushLocationLabels:
+#                - topology.kubernetes.io/region
+#                - topology.kubernetes.io/zone
         provisioner:
-          replicaCount: 3
+          replicaCount: 1
 
   destination:
     server: "https://kubernetes.default.svc"
