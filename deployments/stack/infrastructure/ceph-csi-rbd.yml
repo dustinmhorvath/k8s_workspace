@@ -13,6 +13,9 @@ spec:
       releaseName: ceph-csi-rbd
       valuesObject:
         storageClass:
+          provisionerSecretNamespace: ceph-csi-rbd
+          controllerExpandSecretNamespace: ceph-csi-rbd
+          nodeStageSecretNamespace: ceph-csi-rbd
           create: true
           pool: kubernetes
           allowVolumeExpansion: true
