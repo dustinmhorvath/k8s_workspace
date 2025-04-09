@@ -12,10 +12,9 @@ spec:
     helm:
       releaseName: ceph-csi-rbd
       valuesObject:
+        logLevel: 5
+        sidecarLogLevel: 3
         storageClass:
-          provisionerSecretNamespace: ceph-csi-rbd
-          controllerExpandSecretNamespace: ceph-csi-rbd
-          nodeStageSecretNamespace: ceph-csi-rbd
           create: true
           pool: kubernetes
           allowVolumeExpansion: true
