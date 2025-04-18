@@ -37,4 +37,5 @@ spec:
 
   destination:
     server: "https://kubernetes.default.svc"
-    namespace: ceph-csi-rbd
+    #namespace: ceph-csi-rbd
+    namespace: default
