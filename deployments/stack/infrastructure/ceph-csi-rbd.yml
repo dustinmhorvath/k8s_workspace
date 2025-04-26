@@ -33,6 +33,7 @@ spec:
                 - topology.kubernetes.io/region
                 - topology.kubernetes.io/zone
         provisioner:
+          enableHostNetwork: true
           replicaCount: 1
 
   destination:
