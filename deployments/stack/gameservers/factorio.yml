@@ -28,6 +28,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
+  volumeName: factorio-config-pv
 ---
 apiVersion: apps/v1
 kind: StatefulSet
