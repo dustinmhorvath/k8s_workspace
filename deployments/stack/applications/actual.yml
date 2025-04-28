@@ -61,7 +61,7 @@ spec:
     matchLabels:
       app: actual # has to match .spec.template.metadata.labels
   serviceName: "actual"
-  replicas: 1
+  replicas: 0
   template:
     metadata:
       labels:
