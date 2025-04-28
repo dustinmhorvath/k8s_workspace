@@ -18,7 +18,7 @@ spec:
           create: true
           pool: kubernetes
           allowVolumeExpansion: true
-          reclaimPolicy: Retain
+          reclaimPolicy: Delete
           clusterID: "f1f55ada-1575-47be-9c2e-76167142a716"
         csiConfig:
           - clusterID: "f1f55ada-1575-47be-9c2e-76167142a716"
