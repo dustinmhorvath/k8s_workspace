@@ -14,6 +14,11 @@ spec:
     path: deployments/stack/gameservers
     repoURL: {{ .Values.spec.source.repoURL }}
     targetRevision: {{ .Values.spec.source.targetRevision }}
+  ignoreDifferences:
+    - group: '*'
+      kind: '*'
+      jsonPointers:
+        - /metadata/annotations/kubectl.kubernetes.io/last-applied-configuration
   syncPolicy:
 #    syncOptions:
 #    - PrunePropagationPolicy=foreground
