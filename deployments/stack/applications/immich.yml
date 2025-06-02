@@ -79,6 +79,8 @@ spec:
               existingClaim: immich-config-rbd
         redis:
           enabled: true
+          global:
+            defaultStorageClass: csi-rbd-sc
         server:
           ingress: 
             main:
@@ -91,10 +93,6 @@ spec:
                 - hosts:
                     - immich.perihelion.host
                   secretName: immich-perihelion-host
-      # Trying this for the redis upstream chart
-      env:
-        global:
-          defaultStorageClass: csi-rbd-sc
   destination:
     server: "https://kubernetes.default.svc"
     namespace: default
