@@ -8,7 +8,7 @@ spec:
   sources:
   - chart: immich
     repoURL: oci://ghcr.io/immich-app/immich-charts/immich
-    targetRevision: HEAD
+    targetRevision: 0.*
     helm:
       releaseName: immich
       valuesObject:
