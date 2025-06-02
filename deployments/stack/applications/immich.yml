@@ -92,8 +92,9 @@ spec:
                     - immich.perihelion.host
                   secretName: immich-perihelion-host
       # Trying this for the redis upstream chart
-      global:
-        defaultStorageClass: csi-rbd-sc
+      env:
+        global:
+          defaultStorageClass: csi-rbd-sc
   destination:
     server: "https://kubernetes.default.svc"
     namespace: default
