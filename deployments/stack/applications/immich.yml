@@ -1,3 +1,59 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: immich-postgres
+spec:
+  # At the time of writing, immich is only compatible with pgvecto.rs <0.4. Latest postgres image with that version is 16.5.
+  imageName: ghcr.io/tensorchord/cloudnative-pgvecto.rs:16.5-v0.3.0@sha256:be3f025d79aa1b747817f478e07e71be43236e14d00d8a9eb3914146245035ba
+  instances: 1
+
+  postgresql:
+    shared_preload_libraries:
+      - "vectors.so"
+
+  managed:
+    roles:
+      - name: immich
+        superuser: true
+        login: true
+
+  bootstrap:
+    initdb:
+      database: immich
+      owner: immich
+      secret:
+        name: immich-postgres-user
+      postInitSQL:
+        - CREATE EXTENSION IF NOT EXISTS "vectors";
+        - CREATE EXTENSION IF NOT EXISTS "cube" CASCADE;
+        - CREATE EXTENSION IF NOT EXISTS "earthdistance" CASCADE;
+
+  storage:
+    size: 10Gi
+    storageClass: ceph-rbd-sc
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-config-rbd
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ceph-rbd-sc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-config-rbd
+  namespace: immich
+spec:
+  storageClassName: ceph-rbd-sc
+  volumeName: immich-config-rbd
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -16,12 +72,25 @@ spec:
           persistence:
             library:
               existingClaim: immich-config-rbd
+        redis:
+          enabled: true
         persistence:
           config:
             storageClass: csi-rbd-sc
-        ingress: 
-          main:
-            enabled: true
+        server:
+          ingress: 
+            main:
+              enabled: true
+            hosts:
+              - host: immich.perihelion.host
+                paths:
+                  - path: /
+                    pathType: Prefix
+            tls:
+              - hosts:
+                  - immich.perihelion.host
+                secretName: immich-perihelion-host
   destination:
     server: "https://kubernetes.default.svc"
     namespace: default
+
