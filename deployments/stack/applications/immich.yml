@@ -7,11 +7,15 @@ spec:
   project: default
   sources:
   - chart: immich
-    repoURL: ghcr.io/immich-app/immich-charts/
+    repoURL: ghcr.io/immich-app/immich-charts
     targetRevision: 0.*
     helm:
       releaseName: immich
       valuesObject:
+        immich:
+          persistence:
+            library:
+              existingClaim: immich-config-rbd
         persistence:
           config:
             storageClass: csi-rbd-sc
