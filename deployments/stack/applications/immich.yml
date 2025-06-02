@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: immich
+  namespace: argocd
+spec:
+  project: default
+  sources:
+  - chart: immich
+    repoURL: oci://ghcr.io/immich-app/immich-charts/immich
+    targetRevision: HEAD
+    helm:
+      releaseName: immich
+      valuesObject:
+        persistence:
+          config:
+            storageClass: csi-rbd-sc
+        ingress: 
+          main:
+            enabled: true
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: default
