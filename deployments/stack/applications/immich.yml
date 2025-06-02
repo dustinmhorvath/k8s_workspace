@@ -31,7 +31,7 @@ spec:
 
   storage:
     size: 10Gi
-    storageClass: ceph-rbd-sc
+    storageClass: csi-rbd-sc
 ---
 #apiVersion: v1
 #kind: PersistentVolume
@@ -43,7 +43,7 @@ spec:
 #  accessModes:
 #    - ReadWriteOnce
 #  persistentVolumeReclaimPolicy: Retain
-#  storageClassName: ceph-rbd-sc
+#  storageClassName: csi-rbd-sc
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -51,7 +51,7 @@ metadata:
   name: immich-config-rbd
   namespace: default
 spec:
-  storageClassName: ceph-rbd-sc
+  storageClassName: csi-rbd-sc
   resources:
     requests:
       storage: 5Gi
