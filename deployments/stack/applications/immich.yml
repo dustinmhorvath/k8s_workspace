@@ -79,9 +79,6 @@ spec:
               existingClaim: immich-config-rbd
         redis:
           enabled: true
-        persistence:
-          config:
-            storageClass: csi-rbd-sc
         server:
           ingress: 
             main:
@@ -89,8 +86,7 @@ spec:
             hosts:
               - host: immich.perihelion.host
                 paths:
-                  - path: /
-                    pathType: Prefix
+                  - path: "/"
             tls:
               - hosts:
                   - immich.perihelion.host
