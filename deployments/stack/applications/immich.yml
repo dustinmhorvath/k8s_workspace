@@ -1,4 +1,22 @@
 ---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cnpg-operator
+  namespace: argocd
+spec:
+  project: default
+  sources:
+  - chart: cloudnative-pg
+    repoURL: https://cloudnative-pg.github.io/charts
+    targetRevision: 1.*
+    helm:
+      releaseName: cnpg
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: cnpg-system
+
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -33,26 +51,31 @@ spec:
     size: 10Gi
     storageClass: ceph-rbd-sc
 ---
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: immich-config-rbd
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ceph-rbd-sc
+#apiVersion: v1
+#kind: PersistentVolume
+#metadata:
+#  name: immich-config-rbd
+#spec:
+#  capacity:
+#    storage: 5Gi
+#  accessModes:
+#    - ReadWriteOnce
+#  persistentVolumeReclaimPolicy: Retain
+#  storageClassName: ceph-rbd-sc
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: immich-config-rbd
-  namespace: immich
+  namespace: default
 spec:
   storageClassName: ceph-rbd-sc
-  volumeName: immich-config-rbd
+  resources:
+    requests:
+      storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+#  volumeName: immich-config-rbd
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
