@@ -83,14 +83,14 @@ spec:
           ingress: 
             main:
               enabled: true
-            hosts:
-              - host: immich.perihelion.host
-                paths:
-                  - path: "/"
-            tls:
-              - hosts:
-                  - immich.perihelion.host
-                secretName: immich-perihelion-host
+              hosts:
+                - host: immich.perihelion.host
+                  paths:
+                    - path: /
+              tls:
+                - hosts:
+                    - immich.perihelion.host
+                  secretName: immich-perihelion-host
   destination:
     server: "https://kubernetes.default.svc"
     namespace: default
