@@ -1,16 +1,20 @@
 resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
   for_each    = var.k8s_masters
   name        = each.value.name
-  desc        = each.value.name
+  description = each.value.name
   target_node = each.value.target_node
   os_type     = "cloud-init"
-  cloudinit_cdrom_storage = "local-lvm"
   full_clone  = true
   memory      = each.value.memory
   #balloon     = 2048
-  sockets     = "1"
-  cores       = each.value.vcpu
-  #cpu         = "host"
+  cpu {
+    cores     = each.value.vcpu
+    sockets   = 1
+    type        = "host"
+  }
+  qemu_os     = "l26"
+  machine     = "q35"
+  onboot      = true
   clone       = var.k8s_source_template
   agent       = 1
   disks {
@@ -24,6 +28,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
     }
   }
   network {
+    id     = 0
     model  = "virtio"
     bridge = "vmbr0"
   }
@@ -44,25 +49,27 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-masters" {
       host        = each.value.ip
     }
   }
-#  provisioner "local-exec" {
-#    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u root --private-key /root/.ssh/id_rsa ${path.root}/rke2_ansible/setup_rke2.yml -i rke2_ansible/inventory"
-#  }
 
 }
+
 resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
   for_each    = var.k8s_workers
   name        = each.value.name
-  desc        = each.value.name
+  description = each.value.name
   target_node = each.value.target_node
   os_type     = "cloud-init"
   full_clone  = true
-  cloudinit_cdrom_storage = "local-lvm"
   memory      = each.value.memory
   #balloon     = 2048
-  sockets     = "1"
-  cores       = each.value.vcpu
-  cpu         = "host"
+  cpu {
+    cores    = each.value.vcpu
+    sockets = 1
+    type        = "host"
+  }
   clone       = var.k8s_source_template
+  qemu_os     = "l26"
+  machine     = "q35"
+  onboot      = true
   agent       = 1
   disks {
     virtio {
@@ -75,6 +82,7 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
     }
   }
   network {
+    id     = 0
     model  = "virtio"
     bridge = "vmbr0"
   }
@@ -102,12 +110,13 @@ resource "proxmox_vm_qemu" "rocky8-k8s-kubespray-workers" {
 }
 
 output "instance_cluster_master_ips" {
-	value = {
+  value = {
     for k, rocky8-k8s-kubespray-masters in proxmox_vm_qemu.rocky8-k8s-kubespray-masters: k => rocky8-k8s-kubespray-masters.default_ipv4_address
   }
 }
 output "instance_cluster_worker_ips" {
-	value = {
+  value = {
     for k, rocky8-k8s-kubespray-workers in proxmox_vm_qemu.rocky8-k8s-kubespray-workers: k => rocky8-k8s-kubespray-workers.default_ipv4_address
   }
 }
+

@@ -3,12 +3,16 @@ virtual_environment_password = ""
 virtual_environment_endpoint = "https://192.168.1.201:8006"
 
 k8s_masters = {
-  m1 = { target_node = "pve01", vcpu = "4", memory = "12288", disk_size = "40", name = "k8s-mast-01.perihelion.host", ip = "192.168.1.161", gw = "192.168.1.1" },
+  m1 = { target_node = "pve01", vcpu = "4", memory = "12288", disk_size = "40", name = "k8s-mast-01", ip = "192.168.1.161", gw = "192.168.1.1" },
 }
 k8s_workers = {
-  w1 = { target_node = "pve01", vcpu = "8", memory = "20480", disk_size = "60", name = "k8s-wk-01.perihelion.host", ip = "192.168.1.162", gw = "192.168.1.1" },
-#  w2 = { target_node = "pve01", vcpu = "4", memory = "8192", disk_size = "60", name = "k8s-wk-02.perihelion.host", ip = "192.168.1.163", gw = "192.168.1.1" },
-#  w3 = { target_node = "pve01", vcpu = "4", memory = "8192", disk_size = "60", name = "k8s-wk-03.perihelion.host", ip = "192.168.1.164", gw = "192.168.1.1" },
+  w1 = { target_node = "pve01", vcpu = "12", memory = "49152", disk_size = "60", name = "k8s-wk-01", ip = "192.168.1.162", gw = "192.168.1.1" },
+}
+
+rke_nodes = {
+  n1 = { target_node = "pve01", vcpu = "4", memory = "8192", disk_size = "60", name = "rke-node-1", ip = "192.168.1.165", gw = "192.168.1.1" },
+#  n2 = { target_node = "pve01", vcpu = "4", memory = "8192", disk_size = "60", name = "rke-node-2", ip = "192.168.1.166", gw = "192.168.1.1" },
+#  n3 = { target_node = "pve01", vcpu = "4", memory = "8192", disk_size = "60", name = "rke-node-3", ip = "192.168.1.167", gw = "192.168.1.1" },
 }
 
 firewalld_k8s_config = [

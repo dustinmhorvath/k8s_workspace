@@ -6,9 +6,11 @@ terraform {
     }
     proxmox = {
       source = "telmate/proxmox"
-      version = "3.0.1-rc1"
-#      source = "bpg/proxmox"
-#      version = "0.60.1"
+      version = "3.0.2-rc03"
+    }
+		rke = {
+      source  = "rancher/rke"
+      version = "1.7.5"
     }
   }
 }

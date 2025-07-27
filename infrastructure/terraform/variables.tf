@@ -18,6 +18,11 @@ variable "k8s_workers" {
   type        = map(any)
 }
 
+variable "rke_nodes" {
+  description = "vm variables in a dictionary "
+  type        = map(any)
+}
+
 variable "k8s_source_template" {
   description = ""
   type        = string
