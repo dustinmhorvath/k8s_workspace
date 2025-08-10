@@ -54,7 +54,7 @@ spec:
             protocol: TCP
         env:
         - name: WORLD_FILENAME
-          value: "The_Basin_of_Solicitation"
+          value: "The_Basin_of_Solicitation.wld"
 
         volumeMounts:
         - name: terraria-config
