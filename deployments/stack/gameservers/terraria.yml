@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: terraria-tcp
+  annotations:
+    metallb.universe.tf/allow-shared-ip: "shared-192.168.1.213"
+spec:
+  selector:
+    app: terraria
+  ports:
+    - port: 7777
+      protocol: TCP
+      targetPort: 7777
+  loadBalancerIP: 192.168.1.213
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: terraria-config-pvc
+  namespace: default
+spec:
+  storageClassName: csi-rbd-sc
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  #volumeName: terraria-config-pv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: terraria
+spec:
+  selector:
+    matchLabels:
+      app: terraria
+  serviceName: "terraria"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: terraria # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: terraria
+        image: ryshe/terraria:latest
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 7777
+            protocol: TCP
+        env:
+        - name: WORLD_FILENAME
+          value: "The_Basin_of_Solicitation"
+
+        volumeMounts:
+        - name: terraria-config
+          mountPath: /root/.local/share/Terraria/Worlds
+      volumes:
+      - name: terraria-config
+        persistentVolumeClaim:
+          claimName: terraria-config-pvc
+          readOnly: false
