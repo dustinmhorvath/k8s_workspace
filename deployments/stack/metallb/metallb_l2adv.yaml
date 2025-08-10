@@ -4,3 +4,6 @@ kind: L2Advertisement
 metadata:
   name: l2adv
   namespace: metallb-system
+spec:
+  ipAddressPools:
+    - primary-pool
