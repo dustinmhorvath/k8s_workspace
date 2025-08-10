@@ -4,7 +4,7 @@ kind: Service
 metadata:
   name: terraria-tcp
   annotations:
-    metallb.universe.tf/allow-shared-ip: "shared-192.168.1.213"
+    metallb.universe.tf/allow-shared-ip: "shared-192.168.1.214"
 spec:
   selector:
     app: terraria
@@ -12,7 +12,7 @@ spec:
     - port: 7777
       protocol: TCP
       targetPort: 7777
-  loadBalancerIP: 192.168.1.213
+  loadBalancerIP: 192.168.1.214
   type: LoadBalancer
 ---
 apiVersion: v1
