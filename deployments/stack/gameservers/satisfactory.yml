@@ -9,10 +9,10 @@ spec:
   selector:
     app: satisfactory
   ports:
-    - name: sftry-7777
-      port: 7777
-      protocol: UDP
-      targetPort: sftry-7777
+    #- name: sftry-7777
+    #  port: 7777
+    #  protocol: UDP
+    #  targetPort: sftry-7777
     - name: sftry-15000
       port: 15000
       protocol: UDP
@@ -89,9 +89,9 @@ spec:
         image: wolveix/satisfactory-server:latest
         imagePullPolicy: Always
         ports:
-          - name: sftry-7777
-            containerPort: 7777
-            protocol: UDP
+          #- name: sftry-7777
+          #  containerPort: 7777
+          #  protocol: UDP
           - name: sftry-15000
             containerPort: 15000
             protocol: UDP
