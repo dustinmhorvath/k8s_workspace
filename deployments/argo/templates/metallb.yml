@@ -18,5 +18,5 @@ spec:
     syncOptions:
     - PrunePropagationPolicy=foreground
     automated:
-      prune: false
-      selfHeal: false
+      prune: true
+      selfHeal: true
