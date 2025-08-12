@@ -4,7 +4,7 @@ kind: Service
 metadata:
   name: terraria-tcp
   annotations:
-    metallb.universe.tf/allow-shared-ip: "shared-192.168.1.214"
+    metallb.universe.tf/allow-shared-ip: "shared-192.168.1.211"
 spec:
   selector:
     app: terraria
@@ -13,13 +13,14 @@ spec:
       port: 7777
       protocol: TCP
       targetPort: 7777
-  loadBalancerIP: 192.168.1.214
+  loadBalancerIP: 192.168.1.211
   type: LoadBalancer
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: terraria-config-pvc
+  namespace: default
 spec:
   storageClassName: csi-rbd-sc
   accessModes:
@@ -27,7 +28,6 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  #volumeName: terraria-config-pv
 ---
 apiVersion: apps/v1
 kind: StatefulSet
