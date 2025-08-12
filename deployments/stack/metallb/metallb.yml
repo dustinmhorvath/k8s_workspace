@@ -3,3 +3,5 @@ kind: MetalLB
 metadata:
   name: metallb
   namespace: metallb-system
+spec:
+  loadBalancerClass: 'metallb.universe.tf/metallb'
