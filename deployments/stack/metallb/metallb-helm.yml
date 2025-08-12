@@ -8,7 +8,7 @@ spec:
   project: default
   source:
     chart: metallb
-    repoURL: metallb_operator.yml
+    repoURL: https://metallb.github.io/metallb
     targetRevision: v0.*
     helm:
       releaseName: metallb
