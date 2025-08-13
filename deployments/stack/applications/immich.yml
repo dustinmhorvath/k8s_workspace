@@ -82,6 +82,10 @@ spec:
           global:
             defaultStorageClass: csi-rbd-sc
         server:
+          probes:
+            startup:
+              spec:
+                failureThreshold: 360
           ingress: 
             main:
               enabled: true
