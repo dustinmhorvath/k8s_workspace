@@ -73,6 +73,8 @@ spec:
     helm:
       releaseName: immich
       valuesObject:
+        image:
+          tag: v1.138.0
         immich:
           persistence:
             library:
