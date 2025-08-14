@@ -9,9 +9,10 @@ kind: Application
 metadata:
   name: cnpg-operator
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
   project: default
   sources:
   - chart: cloudnative-pg
