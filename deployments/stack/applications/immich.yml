@@ -100,6 +100,8 @@ spec:
                 failureThreshold: 360
           ingress: 
             main:
+              annotations:
+                cert-manager.io/cluster-issuer: "letsencrypt-prod"
               enabled: true
               hosts:
                 - host: immich.perihelion.host
