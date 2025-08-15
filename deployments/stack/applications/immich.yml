@@ -22,8 +22,8 @@ spec:
     initdb:
       database: immich
       owner: immich
-      secret:
-        name: immich-postgres-user
+      #secret:
+      #  name: immich-postgres-user
       postInitSQL:
         - CREATE EXTENSION IF NOT EXISTS "vectors";
         - CREATE EXTENSION IF NOT EXISTS "cube" CASCADE;
@@ -73,6 +73,12 @@ spec:
     helm:
       releaseName: immich
       valuesObject:
+        env:
+          DB_PASSOWRD:
+            valueFrom:
+              secretKeyRef:
+                name: immich-postgres-user
+                key: PG_PASSWORD
         postgresql:
           global:
             postgresql:
