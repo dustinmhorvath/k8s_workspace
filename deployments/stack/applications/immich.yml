@@ -74,7 +74,8 @@ spec:
       releaseName: immich
       valuesObject:
         env:
-          DB_PASSOWRD:
+          DB_HOSTNAME: immich-postgres-rw.default.svc.cluster.local
+          DB_PASSWORD:
             valueFrom:
               secretKeyRef:
                 name: immich-postgres-app
