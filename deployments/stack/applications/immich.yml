@@ -73,6 +73,11 @@ spec:
     helm:
       releaseName: immich
       valuesObject:
+        postgresql:
+          global:
+            postgresql:
+              auth:
+                existingSecret: immich-postgres-user
         immich:
           persistence:
             library:
