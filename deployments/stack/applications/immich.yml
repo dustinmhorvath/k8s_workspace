@@ -77,13 +77,13 @@ spec:
           DB_PASSOWRD:
             valueFrom:
               secretKeyRef:
-                name: immich-postgres-user
-                key: PG_PASSWORD
-        postgresql:
-          global:
-            postgresql:
-              auth:
-                existingSecret: immich-postgres-user
+                name: immich-postgres-app
+                key: password
+        #postgresql:
+        #  global:
+        #    postgresql:
+        #      auth:
+        #        existingSecret: immich-postgres-user
         immich:
           persistence:
             library:
