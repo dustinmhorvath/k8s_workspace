@@ -54,7 +54,7 @@ spec:
   storageClassName: csi-rbd-sc
   resources:
     requests:
-      storage: 20Gi
+      storage: 50Gi
   accessModes:
     - ReadWriteOnce
 #  volumeName: immich-config-rbd
