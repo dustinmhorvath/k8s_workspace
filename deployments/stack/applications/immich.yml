@@ -89,10 +89,8 @@ spec:
           persistence:
             library:
               existingClaim: immich-config-rbd
-        redis:
+        valkey:
           enabled: true
-          global:
-            defaultStorageClass: csi-rbd-sc
         server:
           probes:
             startup:
