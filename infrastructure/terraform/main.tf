@@ -8,9 +8,9 @@ terraform {
       source = "telmate/proxmox"
       version = "3.0.2-rc03"
     }
-		rke = {
-      source  = "rancher/rke"
-      version = "1.7.5"
+		rancher2 = {
+      source = "rancher/rancher2"
+      version = "8.2.1"
     }
   }
 }
@@ -27,3 +27,10 @@ provider "proxmox" {
 #  }
 }
 
+# Rancher2 provider configuration
+provider "rancher2" {
+  api_url    = "https://192.168.1.165"
+	#alias      = "bootstrap"
+	#bootstrap  = true
+  token_key = "kljgjn8gi3n7492gjr83r8h"
+}

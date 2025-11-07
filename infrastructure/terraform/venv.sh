@@ -1,8 +1,10 @@
 VENVDIR=env
 ANSIBLE_VERSION=2.12
+KUBESPRAYDIR=kubespray
 virtualenv  --python=$(which python3) $VENVDIR
 source $VENVDIR/bin/activate
 pip install -U -r .requirements.txt
+pip install -U -r $KUBESPRAYDIR/requirements.txt
 
 ansible-galaxy install -r .requirements.yml
 

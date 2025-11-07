@@ -1,73 +1,40 @@
-resource "proxmox_cloud_init_disk" "ci" {
-  for_each    = var.rke_nodes
-
-  name      = each.value.name
-  pve_node  = each.value.target_node
-  storage   = "ceph-rbd"
-
-  meta_data = yamlencode({
-    instance_id    = sha1(each.value.name)
-    local-hostname = each.value.name
-  })
-
-  user_data = <<-EOT
-  #cloud-config
-  #users:
-  #  - default
-  #ssh_authorized_keys:
-  #  - ssh-rsa AAAAB3N......
-  EOT
-
-  network_config = yamlencode({
-    version = 1
-    config = [{
-      type = "physical"
-      name = "enp6s18"
-      subnets = [{
-        type            = "static"
-        address         = "${each.value.ip}/24"
-        gateway         = "${each.value.gw}"
-        dns_nameservers = [
-          "1.1.1.1", 
-          "8.8.8.8"
-          ]
-      }]
-    }]
-  })
-}
 
 resource "proxmox_vm_qemu" "rke-nodes" {
-  for_each    = var.rke_nodes
-  name        = each.value.name
-  description = each.value.name
-  target_node = each.value.target_node
+  depends_on = [local_file.ansible_inventory]
+  count           = var.worker_count
+	tags        = "terraform,rocky,k8s-worker"
+  ssh_private_key = file("/root/.ssh/id_rsa")
+  name        = "${var.worker_name}-${count.index + 1}"
+  description = var.worker_description
+  target_node = var.target_node
   os_type     = "cloud-init"
   full_clone  = false
-  memory      = each.value.memory
+  memory      = var.worker_memory
   #balloon     = 2048
   cpu {
-    cores    = each.value.vcpu
+    cores    = var.worker_cores
     sockets = 1
     type        = "host"
   }
   clone       = var.k8s_source_template
-  qemu_os     = "l26"
-  machine     = "q35"
+  #qemu_os     = "l26"
+  #machine     = "q35"
   onboot      = true
+  skip_ipv6   = true
   agent       = 1
   disks {
     virtio {
       virtio0 {
         disk {
-          size    = each.value.disk_size
+          size    = var.worker_disk
           storage = "ceph-rbd"
         }
       }
     }
-    scsi {
-      scsi0 {
-        cdrom {
-          iso = "${proxmox_cloud_init_disk.ci[each.key].id}"
+    ide {
+      ide0 {
+        cloudinit {
+          storage = "ceph-rbd"
         }
       }
     }
@@ -81,31 +48,79 @@ resource "proxmox_vm_qemu" "rke-nodes" {
 
   # Cloud-init section
   ssh_user  = var.ssh_user
+  ipconfig0 = "ip=${var.ip_address_base}.${var.ip_address_start + count.index + 1}/24,gw=${var.gateway}"
+  ciuser    = var.ssh_user
+  cipassword = var.ssh_password
   #sshkeys   = file("/root/.ssh/id_rsa")
 
   # Post creation actions
   provisioner "remote-exec" {
-    inline = concat(var.extend_root_disk_script, var.firewalld_k8s_config)
+    inline = concat(var.extend_root_disk_script, var.firewalld_k8s_config, var.docker_ce)
     connection {
       type        = "ssh"
       user        = var.ssh_user
       password    = var.ssh_password
       private_key = file("/root/.ssh/id_rsa")
-      host        = each.value.ip
+      host        = "${var.ip_address_base}.${var.ip_address_start + count.index + 1}"
     }
+  }
+
+  #lifecycle {
+  #    ignore_changes = [
+  #       tags
+  #    ]  
+  #}
+
+  provisioner "local-exec" {
+    when    = destroy
+		on_failure  = continue
+    command = "./kubespray-destroy.sh ${self.name}"     # > ansible_output.log 2>&1
+    interpreter = ["/bin/bash", "-c"]
   }
 
 }
 
-resource rke_cluster "rke2-cluster" {
-  dynamic "nodes" {
-    for_each         = var.rke_nodes
-    content {
-      address          = nodes.value.ip
-      internal_address = nodes.value.ip
-      user             = var.ssh_user
-      role             = ["controlplane", "worker", "etcd"]
-      ssh_key          = file("/root/.ssh/id_rsa")
+# Generate inventory file
+resource "local_file" "ansible_inventory" {
+  filename = "kubespray/inventory/k8s-cluster/inventory.ini"
+  content = <<-EOF
+  [all]
+  %{ for index in range(0, var.worker_count, 1) ~}
+  ${var.worker_name}-${index + 1} ansible_host=${var.ip_address_base}.${var.ip_address_start + index + 1}
+  %{ endfor ~}
+
+  [kube_control_plane]
+  %{ for index in range(0, var.worker_count, 1) ~}
+	${var.worker_name}-${index + 1}
+  %{ endfor ~}
+
+  [etcd:children]
+	kube_control_plane
+
+  [kube_node]
+  %{ for index in range(0, var.worker_count, 1) ~}
+	${var.worker_name}-${index + 1}
+  %{ endfor ~}
+
+  [k8s_cluster:children]
+  kube_node
+  kube_control_plane
+
+  EOF
+
+}
+
+resource "null_resource" "cluster-provision" {
+  provisioner "local-exec" {
+    command = "./kubespray-provision.sh"     # > ansible_output.log 2>&1
+    interpreter = ["/bin/bash", "-c"]
+    #working_dir = "./"
     }
+  depends_on = [proxmox_vm_qemu.rke-nodes, local_file.ansible_inventory]
+	lifecycle {
+    replace_triggered_by = [
+		  proxmox_vm_qemu.rke-nodes,
+			local_file.ansible_inventory
+		]
   }
 }
