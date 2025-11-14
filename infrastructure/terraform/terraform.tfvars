@@ -2,6 +2,12 @@ virtual_environment_username = "root@pve"
 virtual_environment_password = ""
 virtual_environment_endpoint = "https://192.168.1.201:8006"
 
+ssh_user = "root"
+ssh_password = "somepassword"
+
+local_kubeconfig  = "./kubeconfig"
+remote_kubeconfig = "/root/.kube/config"
+
 worker_count = 3
 worker_disk = 60
 worker_cores = 4

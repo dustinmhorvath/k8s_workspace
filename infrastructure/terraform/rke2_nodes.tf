@@ -124,3 +124,16 @@ resource "null_resource" "cluster-provision" {
 		]
   }
 }
+
+resource "null_resource" "kubeconfig" {
+  depends_on = [null_resource.cluster-provision]
+	provisioner "local-exec" {
+    command = "echo ${var.ssh_password} | scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${var.ssh_user}@${var.ip_address_base}.${var.ip_address_start + 1}:${var.remote_kubeconfig} ${var.local_kubeconfig} && sed -i 's/127.0.0.1/${var.ip_address_base}.${var.ip_address_start + 1}/g' ${var.local_kubeconfig}"
+    interpreter = ["bash", "-c"] # Explicitly define the interpreter for consistency
+  }
+}
+
+#resource "kubernetes_manifest" "secrets" {
+#  for_each = fileset("/root/secrets/", "*.yml")
+#  manifest = yamldecode(file("/root/secrets/${each.value}"))
+#}

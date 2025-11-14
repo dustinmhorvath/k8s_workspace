@@ -8,9 +8,13 @@ terraform {
       source = "telmate/proxmox"
       version = "3.0.2-rc03"
     }
-		rancher2 = {
-      source = "rancher/rancher2"
-      version = "8.2.1"
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+    remote = {
+      source = "tenstad/remote"
+      version = "0.2.1"
     }
   }
 }
@@ -27,10 +31,8 @@ provider "proxmox" {
 #  }
 }
 
-# Rancher2 provider configuration
-provider "rancher2" {
-  api_url    = "https://192.168.1.165"
-	#alias      = "bootstrap"
-	#bootstrap  = true
-  token_key = "kljgjn8gi3n7492gjr83r8h"
+provider "kubernetes" {
+  config_path    = var.local_kubeconfig
+  #config_context = "kubernetes-admin@cluster.local"
 }
+

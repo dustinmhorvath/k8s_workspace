@@ -1,6 +1,7 @@
 variable "ssh_password" {
   description = "initial ssh root password"
   type        = string
+	sensitive   = true
 }
 
 variable "ssh_user" {
@@ -39,6 +40,7 @@ variable "virtual_environment_username" {
 variable "virtual_environment_password" {
   description = ""
   type        = string
+	sensitive   = true
 }
 
 variable "worker_count" {
@@ -84,5 +86,13 @@ variable "ip_address_base" {
 }
 variable "gateway" {
   description = "ip of gateway"
+  type        = string
+}
+variable "local_kubeconfig" {
+  description = "destination path for kubeconfig"
+  type        = string
+}
+variable "remote_kubeconfig" {
+  description = "remote path of kubeconfig"
   type        = string
 }
