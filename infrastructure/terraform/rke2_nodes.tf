@@ -1,3 +1,5 @@
+# Some kubespray pieces pulled from https://blog.andreasm.io/2024/01/15/proxmox-with-opentofu-kubespray-and-kubernetes/
+# Keeping that as a note since it was a useful article. I added some of the pieces for destroying nodes, though my 'when:' directives could probably use some polish.
 
 resource "proxmox_vm_qemu" "rke-nodes" {
   depends_on = [local_file.ansible_inventory]
@@ -133,7 +135,8 @@ resource "null_resource" "kubeconfig" {
   }
 }
 
-#resource "kubernetes_manifest" "secrets" {
-#  for_each = fileset("/root/secrets/", "*.yml")
-#  manifest = yamldecode(file("/root/secrets/${each.value}"))
-#}
+resource "kubernetes_manifest" "secrets" {
+	computed_fields = ["stringData"]
+  for_each = fileset("/root/secrets/", "*.yml")
+  manifest = yamldecode(file("/root/secrets/${each.value}"))
+}
