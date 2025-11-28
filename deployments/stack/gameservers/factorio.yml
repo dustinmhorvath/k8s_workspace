@@ -26,8 +26,21 @@ spec:
    - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 20Gi
   #volumeName: factorio-config-pv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mapshot-config-pvc
+  namespace: default
+spec:
+  storageClassName: csi-rbd-sc
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -68,3 +81,127 @@ spec:
         persistentVolumeClaim:
           claimName: factorio-config-pvc
           readOnly: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mapshot
+  labels:
+    app: mapshot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mapshot
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mapshot
+    spec:
+      containers:
+        - name: mapshot-renderer
+          image: martydingo/mapshot:latest
+          imagePullPolicy: Always
+          env:
+            - name: FACTORIO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: factorio-credentials
+                  key: username
+            - name: FACTORIO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: factorio-credentials
+                  key: token
+
+            - name: FACTORIO_SAVE
+              value: "/opt/factorio/saves/_autosave2.zip"
+
+            - name: MAPSHOT_AREA
+              value: "_player_"
+            - name: MAPSHOT_JPEG_QUALITY
+              value: "99"
+            - name: MAPSHOT_MINIMUM_JPEG_QUALITY
+              value: "97"
+            - name: MAPSHOT_MINIMUM_TILES
+              value: "64"
+            - name: MAPSHOT_MODE
+              value: "render"
+            - name: MAPSHOT_SURFACES_TO_RENDER
+              value: "_all_"
+            - name: MAPSHOT_VERBOSE_MAPSHOT_LOG_LEVEL_INT
+              value: "5"
+            - name: MAPSHOT_INTERVAL
+              value: "3600"
+          volumeMounts:
+            - mountPath: /opt/factorio
+              name: factorio-mapshot
+              readOnly: true
+            - mountPath: /mapshot
+              name: mapshot-config
+        - name: mapshot-server
+          image: martydingo/mapshot:latest
+          imagePullPolicy: Always
+          env:
+            - name: MAPSHOT_MODE
+              value: "serve"
+            - name: MAPSHOT_VERBOSE_MAPSHOT_LOG_LEVEL_INT
+              value: "9"
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+              name: http
+          volumeMounts:
+            - mountPath: /mapshot
+              name: mapshot-config
+      volumes:
+        - name: factorio-mapshot
+          persistentVolumeClaim:
+            claimName: factorio-config-pvc
+        - name: mapshot-config
+          persistentVolumeClaim:
+            claimName: mapshot-config-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mapshot
+  labels:
+    app: mapshot
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: mapshot
+  selector:
+    app: mapshot
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mapshot
+  labels:
+    app: mapshot
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  rules:
+  - host: factorio.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: mapshot
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - factorio.perihelion.host
+    secretName: factorio.perihelion.host
