@@ -1,3 +1,4 @@
+namespaceOverride: argocd
 
 global:
   domain: argo.perihelion.host
