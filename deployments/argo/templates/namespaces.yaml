@@ -7,15 +7,15 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
 ---
 apiVersion: v1
-kind: ceph-csi-rbd
+kind: Namespace
 metadata:
-  name: default
+  name: ceph-csi-cephfs
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
 apiVersion: v1
-kind: ceph-csi-cephfs
+kind: Namespace
 metadata:
-  name: default
+  name: ceph-csi-rbd
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
