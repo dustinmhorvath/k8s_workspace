@@ -38,3 +38,6 @@ spec:
   destination:
     server: "https://kubernetes.default.svc"
     namespace: ceph-csi-rbd
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
