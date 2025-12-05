@@ -5,3 +5,17 @@ metadata:
   name: default
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: v1
+kind: ceph-csi-rbd
+metadata:
+  name: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: v1
+kind: ceph-csi-cephfs
+metadata:
+  name: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
