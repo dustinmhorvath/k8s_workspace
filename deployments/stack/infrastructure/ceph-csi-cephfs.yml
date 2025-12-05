@@ -23,4 +23,4 @@ spec:
     namespace: ceph-csi-cephfs
   syncPolicy:
     syncOptions:
-      - CreateNamespace=true
+    - CreateNamespace=true

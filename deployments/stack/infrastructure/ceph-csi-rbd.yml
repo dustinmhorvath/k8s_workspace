@@ -40,4 +40,4 @@ spec:
     namespace: ceph-csi-rbd
   syncPolicy:
     syncOptions:
-      - CreateNamespace=true
+    - CreateNamespace=true
