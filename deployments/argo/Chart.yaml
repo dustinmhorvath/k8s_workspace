@@ -1,5 +1,5 @@
 apiVersion: v2
-name: 0-toplevel
+name: app-toplevel
 description: Applications
 
 # A chart can be either an 'application' or a 'library' chart.
