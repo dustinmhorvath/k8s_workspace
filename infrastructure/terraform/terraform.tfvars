@@ -52,20 +52,16 @@ extend_root_disk_script = [
     ]
 
 docker_ce = [
-    "dnf remove -y docker",
-
-    "dnf install -y dnf-plugins-core",
-    "dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo",
-    
-    "dnf install -y docker-ce",
-    "systemctl enable --now docker",
-		"modprobe br_netfilter",
+    "modprobe br_netfilter",
     #"echo 'br_netfilter' >> /etc/modules-load.d/kubespray",
     "echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf",
     "echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.conf",
 
     "echo 'AllowTcpForwarding yes' >> /etc/ssh/sshd_config",
-		"systemctl restart sshd"
+    "sysctl -p",
+    "iptables -F",
+    "iptables -X",
+    "systemctl restart sshd"
 ]
 
 k8s_source_template = "rocky-8-template"
