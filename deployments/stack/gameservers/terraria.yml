@@ -38,7 +38,7 @@ spec:
     matchLabels:
       app: terraria
   serviceName: "terraria"
-  replicas: 1
+  replicas: 0
   template:
     metadata:
       labels:
