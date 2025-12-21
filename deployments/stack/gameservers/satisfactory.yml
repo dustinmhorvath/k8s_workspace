@@ -3,64 +3,46 @@ apiVersion: v1
 kind: Service
 metadata:
   name: satisfactory
+  labels:
+    app: saatisfactory
   #annotations:
   #  metallb.universe.tf/allow-shared-ip: "shared-192.168.1.211"
 spec:
+  type: LoadBalancer
+  allocateLoadBalancerNodePorts: true
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
   selector:
     app: satisfactory
   ports:
-    #- name: sftry-7777
-    #  port: 7777
-    #  protocol: UDP
-    #  targetPort: sftry-7777
-    - name: sftry-15000
-      port: 15000
+    - name: "api"
+      port: 7777
+      protocol: TCP
+      targetPort: 7777
+    - name: "game"
+      port: 7777
       protocol: UDP
-      targetPort: sftry-15000
-    - name: sftry-15777
-      port: 15777
-      protocol: UDP
-      targetPort: sftry-15777
+      targetPort: 7777
+    - name: "messaging"
+      port: 8888
+      protocol: TCP
+      targetPort: 8888
   loadBalancerIP: 192.168.1.212
   type: LoadBalancer
 ---
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: satisfactory-config-pv
-spec:
-  storageClassName: local-path
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  csi:
-    driver: cephfs.csi.ceph.com
-    volumeHandle: satisfactory-config-pv
-    nodeStageSecretRef:
-      name: satisfactory-ceph
-      namespace: default
-    nodePublishSecretRef:
-      name: satisfactory-ceph
-      namespace: default
-    volumeAttributes:
-      monitors: 192.168.1.201:6789
-      rootPath: /containervolumes/satisfactory/
-      provisionVolume: "false"
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: satisfactory-config-pvc
-spec:
-  storageClassName: local-path
-  accessModes:
-   - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  volumeName: satisfactory-config-pv
----
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: satisfactory-config-pvc
+#  namespace: default
+#spec:
+#  storageClassName: csi-rbd-sc
+#  accessModes:
+#   - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 20Gi
+#---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -70,7 +52,7 @@ spec:
     matchLabels:
       app: satisfactory # has to match .spec.template.metadata.labels
   serviceName: "satisfactory"
-  replicas: 0
+  replicas: 1
   template:
     metadata:
       labels:
@@ -92,19 +74,29 @@ spec:
           #- name: sftry-7777
           #  containerPort: 7777
           #  protocol: UDP
-          - name: sftry-15000
-            containerPort: 15000
+          #
+          #- name: sftry-15000
+          #  containerPort: 15000
+          #  protocol: UDP
+          #- name: sftry-15777
+          #  containerPort: 15777
+          #  protocol: UDP
+          - name: "api"
+            containerPort: 7777
+            protocol: TCP
+          - name: "game"
+            containerPort: 7777
             protocol: UDP
-          - name: sftry-15777
-            containerPort: 15777
-            protocol: UDP
+          - name: "messaging"
+            containerPort: 8888
+            protocol: TCP
         env:
         - name: DEBUG
           value: "false"
         - name: TZ
           value: America/Chicago
         - name: "STEAMBETA"
-          value: "true"
+          value: "false"
         - name: SKIPUPDATE
           value: "false"
         - name: AUTOSAVEINTERVAL
@@ -116,13 +108,30 @@ spec:
         volumeMounts:
         - name: satisfactory-config
           mountPath: /config/
-        #- name: host-mount-satisfactory
-        #  mountPath: /config
-      volumes:
-      #- name: host-mount-satisfactory
-      #  hostPath:
-      #    path: /var/satisfactory
-      - name: satisfactory-config
-        persistentVolumeClaim:
-          claimName: satisfactory-config-pvc
-          readOnly: false
+        - name: satisfactory-data
+          mountPath: /config/gamefiles
+        livenessProbe:
+          exec:
+            command:
+            - "/bin/sh"
+            - "-c"
+            - "/home/steam/healthcheck.sh"
+          initialDelaySeconds: 300
+          failureThreshold: 4
+          successThreshold: 1
+          periodSeconds: 30
+  volumeClaimTemplates:
+    - metadata:
+        name: satisfactory-config
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: satisfactory-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 20Gi
