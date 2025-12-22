@@ -128,7 +128,7 @@ spec:
         storageClassName: csi-rbd-sc
         resources:
           requests:
-            storage: 1Gi
+            storage: 5Gi
     - metadata:
         name: satisfactory-data
       spec:
@@ -136,4 +136,4 @@ spec:
         storageClassName: csi-rbd-sc
         resources:
           requests:
-            storage: 20Gi
+            storage: 30Gi
