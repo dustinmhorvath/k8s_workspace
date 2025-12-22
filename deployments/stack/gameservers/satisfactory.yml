@@ -105,6 +105,8 @@ spec:
           value: "5"
         - name: MAXTICKRATE
           value: "60"
+        - name: TIMEOUT
+          value: "120"
         volumeMounts:
         - name: satisfactory-config
           mountPath: /config/
