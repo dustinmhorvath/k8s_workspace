@@ -125,7 +125,7 @@ spec:
         name: satisfactory-config
       spec:
         accessModes: [ "ReadWriteOnce" ]
-        storageClassName: ceph-rbd-sc
+        storageClassName: csi-rbd-sc
         resources:
           requests:
             storage: 1Gi
@@ -133,7 +133,7 @@ spec:
         name: satisfactory-data
       spec:
         accessModes: [ "ReadWriteOnce" ]
-        storageClassName: ceph-rbd-sc
+        storageClassName: csi-rbd-sc
         resources:
           requests:
             storage: 20Gi
