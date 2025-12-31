@@ -1,7 +1,11 @@
 # Some kubespray pieces pulled from https://blog.andreasm.io/2024/01/15/proxmox-with-opentofu-kubespray-and-kubernetes/
 # Keeping that as a note since it was a useful article. I added some of the pieces for destroying nodes, though my 'when:' directives could probably use some polish.
+moved {
+  from = proxmox_vm_qemu.rke-nodes
+  to = proxmox_vm_qemu.kubespray-nodes
+}
 
-resource "proxmox_vm_qemu" "rke-nodes" {
+resource "proxmox_vm_qemu" "kubespray-nodes" {
   depends_on = [local_file.ansible_inventory]
   count           = var.worker_count
   tags        = "terraform,rocky,k8s-worker"
@@ -29,7 +33,8 @@ resource "proxmox_vm_qemu" "rke-nodes" {
       virtio0 {
         disk {
           size    = var.worker_disk
-          storage = "ceph-rbd"
+          #storage = var.worker_disk_location
+          storage = "local-lvm"
         }
       }
     }
@@ -44,7 +49,7 @@ resource "proxmox_vm_qemu" "rke-nodes" {
 
   network {
     id     = 0
-    model  = "virtio"
+    model  = "e1000"
     bridge = "vmbr0"
   }
 
@@ -57,7 +62,83 @@ resource "proxmox_vm_qemu" "rke-nodes" {
 
   # Post creation actions
   provisioner "remote-exec" {
-    inline = concat(var.extend_root_disk_script, var.docker_ce)
+    inline = concat(var.extend_root_disk_script, var.iptables_k8s_config, var.k8s_network_tidbits)
+    connection {
+      type        = "ssh"
+      user        = var.ssh_user
+      password    = var.ssh_password
+      private_key = file("/root/.ssh/id_rsa")
+      host        = "${var.ip_address_base}.${var.ip_address_start + count.index + 1}"
+    }
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    on_failure  = continue
+    command = "./kubespray-destroy.sh ${self.name}"     # > ansible_output.log 2>&1
+    interpreter = ["/bin/bash", "-c"]
+  }
+
+}
+
+resource "proxmox_vm_qemu" "kubespray-gameservers" {
+  depends_on = [local_file.ansible_inventory]
+  count           = var.gameserver_count
+  tags        = "terraform,rocky,k8s-gameserver"
+  ssh_private_key = file("/root/.ssh/id_rsa")
+  name        = "${var.gameserver_name}-${count.index + 1}"
+  description = var.gameserver_description
+  target_node = var.target_node
+  os_type     = "cloud-init"
+  full_clone  = false
+  memory      = var.gameserver_memory
+  #balloon     = 2048
+  cpu {
+    cores    = var.gameserver_cores
+    sockets = 1
+    type        = "host"
+  }
+  clone       = var.k8s_source_template
+  #qemu_os     = "l26"
+  #machine     = "q35"
+  onboot      = true
+  skip_ipv6   = true
+  agent       = 1
+  disks {
+    virtio {
+      virtio0 {
+        disk {
+          size    = var.gameserver_disk
+          #storage = var.gameserver_disk_location
+          storage = "local-lvm"
+        }
+      }
+    }
+    ide {
+      ide0 {
+        cloudinit {
+          storage = "ceph-rbd"
+        }
+      }
+    }
+  }
+
+  network {
+    id     = 0
+    model  = "e1000"
+    bridge = "vmbr0"
+  }
+
+  # Cloud-init section
+  ssh_user  = var.ssh_user
+  ipconfig0 = "ip=${var.ip_address_base}.${var.ip_address_start + var.worker_count + count.index + 1}/24,gw=${var.gateway}"
+  ciuser    = var.ssh_user
+  cipassword = var.ssh_password
+  #sshkeys   = file("/root/.ssh/id_rsa")
+
+  # Post creation actions
+  provisioner "remote-exec" {
+    inline = concat(var.extend_root_disk_script, var.iptables_k8s_config, var.k8s_network_tidbits)
     connection {
       type        = "ssh"
       user        = var.ssh_user
@@ -81,18 +162,36 @@ resource "local_file" "ansible_inventory" {
   filename = "kubespray/inventory/k8s-cluster/inventory.ini"
   content = <<-EOF
 
+  [all:children]
+	kube_control_plane
+  kube_node
+	etcd
+
+
   [kube_control_plane]
   %{ for index in range(0, var.worker_count, 1) ~}
-  ${var.worker_name}-${index + 1} ansible_host=${var.ip_address_base}.${var.ip_address_start + index + 1} etcd_member_name=${var.worker_name}-${index + 1}
+  ${var.worker_name}-${index + 1} ansible_host=${var.ip_address_base}.${var.ip_address_start + index + 1} ip=${var.ip_address_base}.${var.ip_address_start + index + 1}
   %{ endfor ~}
 
   [etcd:children]
   kube_control_plane
 
-  [kube_node]
+  [kube_node:children]
+  workers
+  gameservers
+
+  [workers]
   %{ for index in range(0, var.worker_count, 1) ~}
   ${var.worker_name}-${index + 1} ansible_host=${var.ip_address_base}.${var.ip_address_start + index + 1}
   %{ endfor ~}
+
+  [gameservers]
+  %{ for index in range(0, var.gameserver_count, 1) ~}
+  ${var.gameserver_name}-${index + 1} ansible_host=${var.ip_address_base}.${var.ip_address_start + var.worker_count + index + 1}
+  %{ endfor ~}
+
+  [gameservers:vars]
+	node_labels={"restriction_class":"gameserver"}
 
   EOF
 
@@ -138,10 +237,11 @@ resource "null_resource" "cluster-provision" {
     interpreter = ["/bin/bash", "-c"]
     #working_dir = "./"
     }
-  depends_on = [proxmox_vm_qemu.rke-nodes, local_file.ansible_inventory, local_file.group_vars]
+  depends_on = [proxmox_vm_qemu.kubespray-nodes, proxmox_vm_qemu.kubespray-gameservers, local_file.ansible_inventory, local_file.group_vars]
   lifecycle {
     replace_triggered_by = [
-      proxmox_vm_qemu.rke-nodes,
+      proxmox_vm_qemu.kubespray-nodes,
+      proxmox_vm_qemu.kubespray-gameservers,
       local_file.ansible_inventory
     ]
   }

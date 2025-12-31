@@ -19,12 +19,12 @@ variable "extend_root_disk_script" {
   type        = list
 }
 
-variable "firewalld_k8s_config" {
+variable "iptables_k8s_config" {
   description = ""
   type        = list
 }
 
-variable "docker_ce" {
+variable "k8s_network_tidbits" {
   description = ""
   type        = list
 }
@@ -60,6 +60,11 @@ variable "worker_disk" {
   description = "size of worker disk in gigabytes"
   type        = number
 }
+variable "worker_disk_location" {
+  description = "the storage device on which to put the primary disk"
+	default     = "local-lvm"
+  type        = string
+}
 variable "worker_cores" {
   description = "number of worker cores"
   type        = number
@@ -72,6 +77,36 @@ variable "worker_description" {
   description = "description string for worker nodes"
   type        = string
 }
+variable "gameserver_count" {
+  description = "number of gameserver nodes"
+  type        = number
+}
+variable "gameserver_name" {
+  description = "name prefix for gameserver nodes"
+  type        = string
+}
+variable "gameserver_disk" {
+  description = "size of gameserver disk in gigabytes"
+  type        = number
+}
+variable "gameserver_disk_location" {
+  description = "the storage device on which to put the primary disk"
+	default     = "local-lvm"
+  type        = string
+}
+variable "gameserver_cores" {
+  description = "number of gameserver cores"
+  type        = number
+}
+variable "gameserver_memory" {
+  description = "amount of gameserver memory in megabytes"
+  type        = number
+}
+variable "gameserver_description" {
+  description = "description string for gameserver nodes"
+  type        = string
+}
+
 variable "ip_address_start" {
   description = "value of 4th ip octet"
   type        = number
