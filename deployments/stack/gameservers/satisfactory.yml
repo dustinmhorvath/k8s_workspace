@@ -4,14 +4,14 @@ kind: Service
 metadata:
   name: satisfactory
   labels:
-    app: saatisfactory
+    app: satisfactory
   #annotations:
   #  metallb.universe.tf/allow-shared-ip: "shared-192.168.1.211"
 spec:
   type: LoadBalancer
+  externalTrafficPolicy: Local
+  internalTrafficPolicy: Local
   allocateLoadBalancerNodePorts: true
-  externalTrafficPolicy: Cluster
-  internalTrafficPolicy: Cluster
   selector:
     app: satisfactory
   ports:
@@ -58,14 +58,19 @@ spec:
       labels:
         app: satisfactory # has to match .spec.selector.matchLabels
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+    
+      nodeSelector:
+        restriction_class: gameserver
+    
+      tolerations:
+      - key: "restriction_class"
+        operator: "Equal"
+        value: "gameserver"
+        effect: "NoSchedule"
+
       terminationGracePeriodSeconds: 30
-#      nodeSelector:
-#        exclusive: "yes"
-#      tolerations:
-#      - key: "exclusive"
-#        operator: "Equal"
-#        value: "yes"
-#        effect: "NoSchedule"
       containers:
       - name: satisfactory
         image: wolveix/satisfactory-server:latest

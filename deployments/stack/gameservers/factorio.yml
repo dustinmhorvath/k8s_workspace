@@ -29,19 +29,6 @@ spec:
       storage: 20Gi
   #volumeName: factorio-config-pv
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mapshot-config-pvc
-  namespace: default
-spec:
-  storageClassName: csi-rbd-sc
-  accessModes:
-   - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
----
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -57,10 +44,22 @@ spec:
       labels:
         app: factorio # has to match .spec.selector.matchLabels
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+    
+      nodeSelector:
+        restriction_class: gameserver
+    
+      tolerations:
+      - key: "restriction_class"
+        operator: "Equal"
+        value: "gameserver"
+        effect: "NoSchedule"
+
       terminationGracePeriodSeconds: 30
       containers:
       - name: factorio
-        image: factoriotools/factorio:stable
+        image: factoriotools/factorio:latest
         imagePullPolicy: Always
         ports:
           - containerPort: 34198
@@ -72,6 +71,8 @@ spec:
           value: "true"
         - name: PORT
           value: "34198"
+        - name: UPDATE_MODS_ON_START
+          value: "true"
 
         volumeMounts:
         - name: factorio-config
@@ -83,7 +84,7 @@ spec:
           readOnly: false
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: mapshot
   labels:
@@ -93,13 +94,22 @@ spec:
   selector:
     matchLabels:
       app: mapshot
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
         app: mapshot
     spec:
+      # I'm scheduling this so that it ends up on the same node as the factorio game server. This is so that the RWO factorio PVC can (hopefully) mount on this pod as well. According to the docs, this requires that the pods be scheduled on the same node.
+    
+      nodeSelector:
+        restriction_class: gameserver
+    
+      tolerations:
+      - key: "restriction_class"
+        operator: "Equal"
+        value: "gameserver"
+        effect: "NoSchedule"
+
       containers:
         - name: mapshot-renderer
           image: martydingo/mapshot:latest
@@ -116,8 +126,8 @@ spec:
                   name: factorio-credentials
                   key: token
 
-            - name: FACTORIO_SAVE
-              value: "/opt/factorio/saves/_autosave2.zip"
+            - name: MAPSHOT_SAVE_MODE
+              value: "latest"
 
             - name: MAPSHOT_AREA
               value: "_player_"
@@ -137,7 +147,7 @@ spec:
               value: "3600"
           volumeMounts:
             - mountPath: /opt/factorio
-              name: factorio-mapshot
+              name: mapshot-factorio
               readOnly: true
             - mountPath: /mapshot
               name: mapshot-config
@@ -157,12 +167,19 @@ spec:
             - mountPath: /mapshot
               name: mapshot-config
       volumes:
-        - name: factorio-mapshot
+        - name: mapshot-factorio
           persistentVolumeClaim:
+            readOnly: true
             claimName: factorio-config-pvc
-        - name: mapshot-config
-          persistentVolumeClaim:
-            claimName: mapshot-config-pvc
+  volumeClaimTemplates:
+    - metadata:
+        name: mapshot-config
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: csi-rbd-sc
+        resources:
+          requests:
+            storage: 20Gi
 ---
 apiVersion: v1
 kind: Service
@@ -185,9 +202,19 @@ metadata:
   name: mapshot
   labels:
     app: mapshot
+    gethomepage.dev/enabled: "true"
   annotations:
     #nginx.ingress.kubernetes.io/rewrite-target: /
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    gethomepage.dev/description: Factorio Mapshot renderer/server
+    gethomepage.dev/group: Gameservers
+    gethomepage.dev/icon: https://wiki.factorio.com/images/Iron_gear_wheel.png
+    gethomepage.dev/name: Mapshot
+    #gethomepage.dev/widget.type: "factorio"
+    gethomepage.dev/widget.url: "https://factorio.perihelion.host"
+    #gethomepage.dev/pod-selector: ""
+    #gethomepage.dev/weight: 10 # optional
+    #gethomepage.dev/instance: "public" # optional
 
 spec:
   rules:
