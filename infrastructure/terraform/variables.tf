@@ -19,11 +19,6 @@ variable "extend_root_disk_script" {
   type        = list
 }
 
-variable "iptables_k8s_config" {
-  description = ""
-  type        = list
-}
-
 variable "k8s_network_tidbits" {
   description = ""
   type        = list

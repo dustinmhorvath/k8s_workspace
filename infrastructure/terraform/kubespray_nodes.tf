@@ -28,13 +28,17 @@ resource "proxmox_vm_qemu" "kubespray-nodes" {
   onboot      = true
   skip_ipv6   = true
   agent       = 1
+	scsihw      = "virtio-scsi-single"
   disks {
     virtio {
       virtio0 {
         disk {
-          size    = var.worker_disk
+          size     = var.worker_disk
           #storage = var.worker_disk_location
-          storage = "local-lvm"
+          storage  = "local-lvm"
+          cache    = "unsafe"
+          discard  = true
+          iothread = true
         }
       }
     }
@@ -49,7 +53,7 @@ resource "proxmox_vm_qemu" "kubespray-nodes" {
 
   network {
     id     = 0
-    model  = "e1000"
+    model  = "virtio"
     bridge = "vmbr0"
   }
 
@@ -60,9 +64,11 @@ resource "proxmox_vm_qemu" "kubespray-nodes" {
   cipassword = var.ssh_password
   #sshkeys   = file("/root/.ssh/id_rsa")
 
+
+
   # Post creation actions
   provisioner "remote-exec" {
-    inline = concat(var.extend_root_disk_script, var.iptables_k8s_config, var.k8s_network_tidbits)
+    inline = concat(var.extend_root_disk_script, var.k8s_network_tidbits)
     connection {
       type        = "ssh"
       user        = var.ssh_user
@@ -104,13 +110,17 @@ resource "proxmox_vm_qemu" "kubespray-gameservers" {
   onboot      = true
   skip_ipv6   = true
   agent       = 1
+	scsihw      = "virtio-scsi-single"
   disks {
     virtio {
       virtio0 {
         disk {
-          size    = var.gameserver_disk
+          size     = var.gameserver_disk
           #storage = var.gameserver_disk_location
-          storage = "local-lvm"
+          storage  = "local-lvm"
+          cache    = "unsafe"
+          discard  = true
+          iothread = true
         }
       }
     }
@@ -125,7 +135,7 @@ resource "proxmox_vm_qemu" "kubespray-gameservers" {
 
   network {
     id     = 0
-    model  = "e1000"
+    model  = "virtio"
     bridge = "vmbr0"
   }
 
@@ -138,7 +148,7 @@ resource "proxmox_vm_qemu" "kubespray-gameservers" {
 
   # Post creation actions
   provisioner "remote-exec" {
-    inline = concat(var.extend_root_disk_script, var.iptables_k8s_config, var.k8s_network_tidbits)
+    inline = concat(var.extend_root_disk_script, var.k8s_network_tidbits)
     connection {
       type        = "ssh"
       user        = var.ssh_user
