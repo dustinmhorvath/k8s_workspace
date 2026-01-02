@@ -81,7 +81,6 @@ spec:
       - name: factorio-config
         persistentVolumeClaim:
           claimName: factorio-config-pvc
-          readOnly: false
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -142,13 +141,12 @@ spec:
             - name: MAPSHOT_SURFACES_TO_RENDER
               value: "_all_"
             - name: MAPSHOT_VERBOSE_MAPSHOT_LOG_LEVEL_INT
-              value: "5"
+              value: "9"
             - name: MAPSHOT_INTERVAL
               value: "3600"
           volumeMounts:
             - mountPath: /opt/factorio
               name: mapshot-factorio
-              readOnly: true
             - mountPath: /mapshot
               name: mapshot-config
         - name: mapshot-server
