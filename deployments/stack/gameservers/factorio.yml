@@ -113,6 +113,10 @@ spec:
         - name: mapshot-renderer
           image: martydingo/mapshot:latest
           imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 6000m
+              memory: 6G
           env:
             - name: FACTORIO_USERNAME
               valueFrom:
@@ -143,7 +147,8 @@ spec:
             - name: MAPSHOT_VERBOSE_MAPSHOT_LOG_LEVEL_INT
               value: "9"
             - name: MAPSHOT_INTERVAL
-              value: "3600"
+              # Every 10 hours
+              value: "7200"
           volumeMounts:
             - mountPath: /opt/factorio
               name: mapshot-factorio
@@ -152,6 +157,10 @@ spec:
         - name: mapshot-server
           image: martydingo/mapshot:latest
           imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 6G
           env:
             - name: MAPSHOT_MODE
               value: "serve"
