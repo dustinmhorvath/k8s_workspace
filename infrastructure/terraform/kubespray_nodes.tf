@@ -232,7 +232,7 @@ resource "local_file" "group_vars" {
   metallb_enabled: false
   metallb_namespace: "metallb-system"
   metallb_speaker_enabled: "{{ metallb_enabled }}"
-  metrics_server_enabled: false
+  metrics_server_enabled: true
   node_feature_discovery_enabled: true
   rbd_provisioner_enabled: false
   registry_enabled: false
@@ -252,7 +252,8 @@ resource "null_resource" "cluster-provision" {
     replace_triggered_by = [
       proxmox_vm_qemu.kubespray-nodes,
       proxmox_vm_qemu.kubespray-gameservers,
-      local_file.ansible_inventory
+      local_file.ansible_inventory,
+      local_file.group_vars
     ]
   }
 }
