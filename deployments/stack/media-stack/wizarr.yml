@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wizarr
+  namespace: default
+  labels:
+    app: wizarr
+spec:
+  ports:
+  - port: 80
+    targetPort: 5690
+    name: wizarr
+  selector:
+    app: wizarr
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wizarr
+  namespace: default
+  labels:
+    app: wizarr
+spec:
+  selector:
+    matchLabels:
+      app: wizarr # has to match .spec.template.metadata.labels
+  serviceName: "wizarr"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: wizarr # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: wizarr
+        image: ghcr.io/wizarrrr/wizarr
+        imagePullPolicy: Always
+        env:
+        - name: TZ
+          value: America/Chicago
+        ports:
+        - containerPort: 5690
+          name: wizarr
+        volumeMounts:
+        - name: wizarr-data
+          mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: wizarr-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: csi-rbd-sc
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wizarr
+  namespace: default
+  labels:
+    app: wizarr
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: wizarr.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: wizarr
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - wizarr.perihelion.host
+    secretName: wizarr.perihelion.host
