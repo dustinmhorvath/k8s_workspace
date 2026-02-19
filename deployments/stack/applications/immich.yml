@@ -10,7 +10,7 @@ spec:
 
   postgresql:
     shared_preload_libraries:
-      - "vectors.so"
+      - vchord
 
   bootstrap:
     initdb:
@@ -50,13 +50,17 @@ spec:
     helm:
       releaseName: immich
       valuesObject:
-        env:
-          DB_HOSTNAME: immich-postgres-rw.default.svc.cluster.local
-          DB_PASSWORD:
-            valueFrom:
-              secretKeyRef:
-                name: immich-postgres-app
-                key: password
+        controllers:
+          main:
+            containers:
+              main:
+                env:
+                  DB_HOSTNAME: "immich-postgres-rw.default.svc.cluster.local"
+                  DB_PASSWORD:
+                    valueFrom:
+                      secretKeyRef:
+                        name: immich-postgres-app
+                        key: password
         #postgresql:
         #  global:
         #    postgresql:
