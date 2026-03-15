@@ -181,6 +181,11 @@ config:
         url: https://192.168.1.1
         username: homepage
         password: "{{HOMEPAGE_VAR_TOKEN_UNIFI}}"
+  bookmarks:
+    - Developer:
+        - Github:
+            - abbr: GH
+              href: https://github.com/dustinmhorvath/k8s_workspace/
   kubernetes:
     mode: cluster
   settings:
