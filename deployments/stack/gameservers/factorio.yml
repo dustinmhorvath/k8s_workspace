@@ -115,8 +115,10 @@ spec:
           imagePullPolicy: Always
           resources:
             limits:
-              cpu: 10000m
               memory: 8G
+            requests:
+              cpu: 4
+              memory: 4G
           env:
             - name: FACTORIO_USERNAME
               valueFrom:
@@ -161,6 +163,9 @@ spec:
             limits:
               cpu: 2000m
               memory: 6G
+            requests:
+              cpu: 2
+              memory: 4G
           env:
             - name: MAPSHOT_MODE
               value: "serve"
