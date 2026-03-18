@@ -68,6 +68,10 @@ spec:
       - key: "restriction_class"
         operator: "Equal"
         value: "gameserver"
+        effect: "NoExecute"
+      - key: "restriction_class"
+        operator: "Equal"
+        value: "gameserver"
         effect: "NoSchedule"
 
       terminationGracePeriodSeconds: 30
@@ -101,7 +105,7 @@ spec:
         - name: TZ
           value: America/Chicago
         - name: "STEAMBETA"
-          value: "false"
+          value: "true"
         - name: SKIPUPDATE
           value: "false"
         - name: AUTOSAVEINTERVAL
