@@ -2,29 +2,42 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: simplex
-  #annotations:
-  #  metallb.universe.tf/allow-shared-ip: "shared-192.168.1.214"
+  name: simplex-web
 spec:
   selector:
-    app: simplex
+    app: simplex-smp
   ports:
     - name: simplex-web
       port: 443
       protocol: TCP
       targetPort: 443
-  #loadBalancerIP: 192.168.1.214
-  #type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: simplex-lb
+  name: simplex-xftp
   annotations:
     metallb.universe.tf/allow-shared-ip: "shared-192.168.1.214"
 spec:
   selector:
-    app: simplex
+    app: simplex-xftp
+  ports:
+    - name: simplex-xftp
+      port: 443
+      protocol: TCP
+      targetPort: 443
+  loadBalancerIP: 192.168.1.214
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: simplex-smp
+  annotations:
+    metallb.universe.tf/allow-shared-ip: "shared-192.168.1.214"
+spec:
+  selector:
+    app: simplex-smp
   ports:
     - name: simplex-smp
       port: 5223
@@ -64,17 +77,17 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: simplex
+  name: simplex-smp
 spec:
   selector:
     matchLabels:
-      app: simplex
-  serviceName: "simplex"
+      app: simplex-smp
+  serviceName: "simplex-smp"
   replicas: 1
   template:
     metadata:
       labels:
-        app: simplex # has to match .spec.selector.matchLabels
+        app: simplex-smp # has to match .spec.selector.matchLabels
     spec:
       nodeSelector:
         restriction_class: gameserver
@@ -97,7 +110,7 @@ spec:
           protocol: TCP
         env:
         - name: ADDR
-          value: "simplex.perihelion.host"
+          value: "smp.perihelion.host"
         - name: cert_path
           value: "certificates"
 
@@ -109,6 +122,49 @@ spec:
         - name: simplex-certs
           mountPath: "/certificates"
           readOnly: true
+
+      volumes:
+      - name: simplex-configs
+        persistentVolumeClaim:
+          claimName: simplex-configs-pvc
+      - name: simplex-state
+        persistentVolumeClaim:
+          claimName: simplex-state-pvc
+      - name: simplex-certs
+        secret:
+          secretName: simplex-san-certificate
+          items:
+            - key: tls.key
+              path: smp.perihelion.host.key
+            - key: tls.crt
+              path: smp.perihelion.host.crt
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: simplex-xftp
+spec:
+  selector:
+    matchLabels:
+      app: simplex-xftp
+  serviceName: "simplex-xftp"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: simplex-xftp # has to match .spec.selector.matchLabels
+    spec:
+      nodeSelector:
+        restriction_class: gameserver
+    
+      tolerations:
+      - key: "restriction_class"
+        operator: "Equal"
+        value: "gameserver"
+        effect: "NoSchedule"
+
+      terminationGracePeriodSeconds: 30
+      containers:
       - name: simplex-xftp
         image: simplexchat/xftp-server:latest
         imagePullPolicy: Always
@@ -117,7 +173,7 @@ spec:
           protocol: TCP
         env:
         - name: ADDR
-          value: "simplex.perihelion.host"
+          value: "xftp.perihelion.host"
         - name: QUOTA
           value: "10gb"
         - name: cert_path
@@ -135,20 +191,14 @@ spec:
           readOnly: true
 
       volumes:
-      - name: simplex-configs
-        persistentVolumeClaim:
-          claimName: simplex-configs-pvc
-      - name: simplex-state
-        persistentVolumeClaim:
-          claimName: simplex-state-pvc
       - name: simplex-certs
         secret:
-          secretName: simplex.perihelion.host
+          secretName: simplex-san-certificate
           items:
             - key: tls.key
-              path: simplex.perihelion.host.key
+              path: xftp.perihelion.host.key
             - key: tls.crt
-              path: simplex.perihelion.host.crt
+              path: xftp.perihelion.host.crt
   volumeClaimTemplates:
     - metadata:
         name: simplex-xftp-configs
@@ -178,14 +228,11 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: simplex
+  name: simplex-web
   labels:
-    app: simplex
+    app: simplex-smp
     gethomepage.dev/enabled: "true"
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    cert-manager.io/private-key-size: "4096"
-
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/ssl-passthrough: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -199,10 +246,79 @@ spec:
         path: /
         backend:
           service:
-            name: simplex
+            name: simplex-web
             port:
               number: 443
-  tls:
-  - hosts:
-    - simplex.perihelion.host
-    secretName: simplex.perihelion.host
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simplex-smp
+  labels:
+    app: simplex-smp
+    gethomepage.dev/enabled: "true"
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+spec:
+  rules:
+  - host: smp.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: simplex-smp
+            port:
+              number: 5223
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simplex-xftp
+  labels:
+    app: simplex-xftp
+    gethomepage.dev/enabled: "true"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+
+spec:
+  rules:
+  - host: xftp.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: simplex-xftp
+            port:
+              number: 443
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: simplex-perihelion-host
+  namespace: default
+spec:
+  secretName: simplex-san-certificate
+
+  privateKey:
+    algorithm: RSA
+    size: 4096
+
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    #group: cert-manager.io
+
+  dnsNames:
+  - simplex.perihelion.host
+  - smp.perihelion.host
+  - xftp.perihelion.host
