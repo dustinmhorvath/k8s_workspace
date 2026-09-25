@@ -61,7 +61,7 @@ spec:
     matchLabels:
       app: actual # has to match .spec.template.metadata.labels
   serviceName: "actual"
-  replicas: 0
+  replicas: 1
   template:
     metadata:
       labels:
@@ -70,10 +70,12 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
       - name: actual
-        image: actualbudget/actual-server:latest
+        image: docker.io/actualbudget/actual-server:latest
         env:
         - name: TZ
           value: America/Chicago
+        - name: ACTUAL_PORT
+          value: "5006"
         ports:
         - containerPort: 5006
           name: actual
