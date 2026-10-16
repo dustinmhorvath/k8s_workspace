@@ -1,0 +1,135 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audiobookshelf
+  labels:
+    app: audiobookshelf
+spec:
+  ports:
+  - port: 80
+    targetPort: audiobookshelf
+    name: audiobookshelf
+  selector:
+    app: audiobookshelf
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: audiobookshelf-books-pv
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: cephfs.csi.ceph.com
+    volumeHandle: audiobookshelf-books-pv
+    nodeStageSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    nodePublishSecretRef:
+      name: jellyfin-ceph
+      namespace: default
+    volumeAttributes:
+      monitors: 192.168.1.201:6789
+      rootPath: /books
+      provisionVolume: "false"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: audiobookshelf-books-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+   - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: audiobookshelf-books-pv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: audiobookshelf
+  labels:
+    app: audiobookshelf
+spec:
+  selector:
+    matchLabels:
+      app: audiobookshelf # has to match .spec.template.metadata.labels
+  serviceName: "audiobookshelf"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: audiobookshelf # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: audiobookshelf
+        image: ghcr.io/advplyr/audiobookshelf:latest
+        env:
+        - name: TZ
+          value: America/Chicago
+        ports:
+        - containerPort: 80
+          name: audiobookshelf
+        volumeMounts:
+        - name: audiobookshelf-config
+          mountPath: /config
+        - name: audiobookshelf-metadata
+          mountPath: /metadata
+        - name: audiobookshelf-books
+          mountPath: /books
+      volumes:
+      - name: audiobookshelf-books
+        persistentVolumeClaim:
+          claimName: audiobookshelf-books-pvc
+          readOnly: false
+  volumeClaimTemplates:
+    - metadata:
+        name: audiobookshelf-metadata
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: csi-rbd-sc
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: audiobookshelf-config
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: csi-rbd-sc
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: audiobookshelf
+  labels:
+    app: audiobookshelf
+  annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  rules:
+  - host: books.perihelion.host
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: audiobookshelf
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - books.perihelion.host
+    secretName: books.perihelion.host
