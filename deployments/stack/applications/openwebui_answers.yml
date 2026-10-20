@@ -1,2 +1,10 @@
-env:
-  OLLAMA_BASE_URL: http://192.168.1.98:11434
+#env:
+#  OLLAMA_BASE_URL: http://192.168.1.98:11434
+#ingress:
+#  enabled: true
+#  host: "openwebui.perihelion.host"
+#  tls: true
+#  annotations: cert-manager.io/cluster-issuer: "letsencrypt-prod"
+ollama:
+  enabled: false
+  ollamaUrls: http://192.168.1.98:11434
