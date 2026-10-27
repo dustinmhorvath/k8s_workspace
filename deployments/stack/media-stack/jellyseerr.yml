@@ -68,10 +68,25 @@ spec:
         app: jellyseerr # has to match .spec.selector.matchLabels
     spec:
       terminationGracePeriodSeconds: 10
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
       containers:
-      - name: jellyseerr
-        image: fallenbagel/jellyseerr:latest
+      - name: seerr
+        image: ghcr.io/seerr-team/seerr:latest
         imagePullPolicy: Always
+        securityContext:
+          readOnlyRootFilesystem: false
+          privileged: false
+          capabilities:
+            drop:
+              - ALL
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          seccompProfile:
+            type: RuntimeDefault
         env:
         - name: TZ
           value: America/Chicago
