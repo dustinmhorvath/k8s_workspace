@@ -1,0 +1,47 @@
+# authentik-values.yaml
+
+authentik:
+  #existingSecret:
+  #  # -- name of an existing secret to use for authentik configuration. This secret must contain keys matching configuration option names, see the docs for the full list of configuration options https://docs.goauthentik.io/install-config/configuration/
+  #  secretName: ""
+
+  error_reporting:
+    enabled: false
+
+  #postgresql:
+  #  password: "REPLACE_WITH_RANDOM_DATABASE_PASSWORD"
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    hosts:
+      - auth.perihelion.host
+
+    paths:
+      - /
+
+    pathType: Prefix
+
+    tls:
+      - secretName: auth-perihelion-host
+        hosts:
+          - auth.perihelion.host
+
+  # nginx terminates HTTPS; connect to Authentik over HTTP internally.
+  service:
+    type: ClusterIP
+
+worker:
+  enabled: true
+
+postgresql:
+  enabled: true
+  #auth:
+  #  password: "REPLACE_WITH_RANDOM_DATABASE_PASSWORD"
+
