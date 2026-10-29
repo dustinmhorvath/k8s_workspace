@@ -12,7 +12,7 @@ spec:
     helm:
       releaseName: authentik
       valueFiles:
-      - $homepage_values/deployments/stack/infrastructure/authentik_answers.yml
+      - $authentik_values/deployments/stack/infrastructure/authentik_answers.yml
   - repoURL: 'https://github.com/dustinmhorvath/k8s_workspace.git'
     targetRevision: main
     ref: authentik_values
