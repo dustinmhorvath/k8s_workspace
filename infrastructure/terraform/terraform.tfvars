@@ -38,7 +38,7 @@ k8s_network_tidbits = [
     #"modprobe br_netfilter",
 
     "echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf",
-    "echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.conf",
+    #"echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.conf",
     "echo 'net.ipv6.conf.all.disable_ipv6=1' >> /etc/sysctl.conf",
     "echo 'net.ipv4.conf.all.rp_filter=0' >> /etc/sysctl.conf",
     "echo 'net.ipv4.conf.eth0.rp_filter=0' >> /etc/sysctl.conf",
