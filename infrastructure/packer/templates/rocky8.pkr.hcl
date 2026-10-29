@@ -121,6 +121,12 @@ build {
     source      = "/root/keys/id_rsa.pub"
   }
 
+  provisioner "shell" {
+    scripts     = [
+      "${path.root}/../scripts/nftables.sh",
+    ]
+  }
+
   provisioner "ansible" {
     playbook_file = "${path.root}/../ansible/playbook.yml"
     use_proxy = "false"
