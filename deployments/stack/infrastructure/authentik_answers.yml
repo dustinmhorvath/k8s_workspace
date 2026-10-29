@@ -2,16 +2,25 @@
 
 authentik:
   #existingSecret:
-  #  # -- name of an existing secret to use for authentik configuration. This secret must contain keys matching configuration option names, see the docs for the full list of configuration options https://docs.goauthentik.io/install-config/configuration/
-  #  secretName: ""
+  #  secretName: "authentik-secret-key"
 
   error_reporting:
     enabled: false
 
-  #postgresql:
-  #  password: "REPLACE_WITH_RANDOM_DATABASE_PASSWORD"
+  postgresql:
+    #host: postgres.domain.tld
+    user: file:///postgres-creds/username
+    password: file:///postgres-creds/password
 
 server:
+  volumes:
+    - name: postgres-creds
+      secret:
+        secretName: authentik-postgresql
+  volumeMounts:
+    - name: postgres-creds
+      mountPath: /postgres-creds
+      readOnly: true
   ingress:
     enabled: true
     ingressClassName: nginx
@@ -39,6 +48,14 @@ server:
 
 worker:
   enabled: true
+  volumes:
+    - name: postgres-creds
+      secret:
+        secretName: authentik-postgresql
+  volumeMounts:
+    - name: postgres-creds
+      mountPath: /postgres-creds
+      readOnly: true
 
 postgresql:
   enabled: true
