@@ -1,42 +1,40 @@
 # authentik-values.yaml
 
+global:
+  namespaceOverride: authentik
+  env:
+    - name: AUTHENTIK_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: authentik-secret-key
+          key: secret_key
+    - name: AUTHENTIK_POSTGRESQL__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-postgresql
+          key: password
+
 authentik:
-  #existingSecret:
-  #  secretName: "authentik-secret-key"
+  secret_key: ""
+  postgresql:
+    password: ""
 
   error_reporting:
     enabled: false
 
-  postgresql:
-    #host: postgres.domain.tld
-    user: file:///postgres-creds/username
-    password: file:///postgres-creds/password
-
 server:
-  volumes:
-    - name: postgres-creds
-      secret:
-        secretName: authentik-postgresql
-  volumeMounts:
-    - name: postgres-creds
-      mountPath: /postgres-creds
-      readOnly: true
   ingress:
     enabled: true
     ingressClassName: nginx
-
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
 
-    hosts:
-      - auth.perihelion.host
-
+    pathType: Prefix
     paths:
       - /
-
-    pathType: Prefix
-
+    hosts:
+      - auth.perihelion.host
     tls:
       - secretName: auth-perihelion-host
         hosts:
@@ -46,19 +44,7 @@ server:
   service:
     type: ClusterIP
 
-worker:
-  enabled: true
-  volumes:
-    - name: postgres-creds
-      secret:
-        secretName: authentik-postgresql
-  volumeMounts:
-    - name: postgres-creds
-      mountPath: /postgres-creds
-      readOnly: true
-
 postgresql:
   enabled: true
-  #auth:
-  #  password: "REPLACE_WITH_RANDOM_DATABASE_PASSWORD"
-
+  auth:
+    existingSecret: authentik-postgresql
