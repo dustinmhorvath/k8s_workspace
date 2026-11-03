@@ -286,6 +286,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-passthrough: "true"
 
 spec:
+  ingressClassName: nginx
   rules:
   - host: xftp.perihelion.host
     http:
