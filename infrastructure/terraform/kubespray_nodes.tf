@@ -28,7 +28,7 @@ resource "proxmox_vm_qemu" "kubespray-nodes" {
   onboot      = true
   skip_ipv6   = true
   agent       = 1
-	scsihw      = "virtio-scsi-single"
+  scsihw      = "virtio-scsi-single"
   disks {
     virtio {
       virtio0 {
@@ -110,7 +110,7 @@ resource "proxmox_vm_qemu" "kubespray-gameservers" {
   onboot      = true
   skip_ipv6   = true
   agent       = 1
-	scsihw      = "virtio-scsi-single"
+  scsihw      = "virtio-scsi-single"
   disks {
     virtio {
       virtio0 {
@@ -173,9 +173,9 @@ resource "local_file" "ansible_inventory" {
   content = <<-EOF
 
   [all:children]
-	kube_control_plane
+  kube_control_plane
   kube_node
-	etcd
+  etcd
 
 
   [kube_control_plane]
@@ -201,7 +201,7 @@ resource "local_file" "ansible_inventory" {
   %{ endfor ~}
 
   [gameservers:vars]
-	node_labels={"restriction_class":"gameserver"}
+  node_labels={"restriction_class":"gameserver"}
 
   EOF
 
@@ -215,6 +215,10 @@ resource "local_file" "group_vars" {
   ingress_nginx_class: nginx
   ingress_nginx_without_class: true
   ingress_nginx_default: true
+  ingress_nginx_configmap:
+    allow-snippet-annotations: "true"
+    # Required if your controller is v1.12.0 or newer to prevent 'Critical' risks from being filtered out
+    annotations-risk-level: "Critical"
   argocd_enabled: false
   cephfs_provisioner_enabled: false
   cert_manager_enabled: true
@@ -224,15 +228,37 @@ resource "local_file" "group_vars" {
   ingress_alb_enabled: false
   ingress_nginx_enabled: true
   ingress_nginx_namespace: "ingress-nginx"
+  ingress_nginx_extra_args:
+    - --enable-ssl-passthrough=true
   krew_enabled: false
   krew_root_dir: "/usr/local/krew"
   kube_vip_enabled: false
   local_path_provisioner_enabled: false
   local_volume_provisioner_enabled: false
-  metallb_enabled: false
-  metallb_namespace: "metallb-system"
-  metallb_speaker_enabled: "{{ metallb_enabled }}"
+
+  metallb_enabled: true
+  metallb_speaker_enabled: true
   metrics_server_enabled: true
+  metallb_namespace: "metallb-system"
+  metallb_config:
+    layer2:
+      - primary-pool
+    controller:
+      nodeselector:
+        kubernetes.io/os: linux
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+    address_pools:
+      primary-pool:
+        ip_range:
+          - 192.168.1.210-192.168.1.220
+        auto_assign: true
+  #calico_advertise_service_loadbalancer_ips: "{{ metallb_config.address_pools.primary-pool.ip_range }}"
+  kube_proxy_strict_arp: true
+
   node_feature_discovery_enabled: true
   rbd_provisioner_enabled: false
   registry_enabled: false
