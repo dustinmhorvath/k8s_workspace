@@ -204,15 +204,15 @@ metadata:
   name: jellyfin-custom-links
 data:
   menuLinks.json: |
-    {
-      "menuLinks": [
+    "menuLinks": [
+      {
         {
           "name": "Login with Authentik SSO",
           "icon": "login",
           "url": "https://media.perihelion.host/sso/OID/start/jellyfin"
         }
-      ]
-    }
+      }
+    ]
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -258,7 +258,7 @@ spec:
         - name: jellyfin-music
           mountPath: /music
         - name: custom-links
-          mountPath: /jellyfin/jellyfin-web/config.json
+          mountPath: /usr/share/jellyfin/web/config.json
           subPath: menuLinks.json
           readOnly: true
       volumes:
