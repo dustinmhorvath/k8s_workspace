@@ -198,6 +198,22 @@ spec:
       storage: 15Gi
   volumeName: jellyfin-config-pv
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jellyfin-custom-links
+data:
+  menuLinks.json: |
+    {
+      "menuLinks": [
+        {
+          "name": "Login with Authentik SSO",
+          "icon": "login",
+          "url": "https://media.perihelion.host/sso/OID/start/jellyfin"
+        }
+      ]
+    }
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -241,6 +257,10 @@ spec:
           mountPath: /tvshows
         - name: jellyfin-music
           mountPath: /music
+        - name: custom-links
+          mountPath: /jellyfin/jellyfin-web/config.json
+          subPath: menuLinks.json
+          readOnly: true
       volumes:
       - name: jellyfin-config
         persistentVolumeClaim:
@@ -262,6 +282,9 @@ spec:
         persistentVolumeClaim:
           claimName: jellyfin-music-pvc
           readOnly: false
+      - name: custom-links
+        configMap:
+          name: jellyfin-custom-links
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
