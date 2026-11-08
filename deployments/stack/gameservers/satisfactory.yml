@@ -30,19 +30,6 @@ spec:
   loadBalancerIP: 192.168.1.212
   type: LoadBalancer
 ---
-#apiVersion: v1
-#kind: PersistentVolumeClaim
-#metadata:
-#  name: satisfactory-config-pvc
-#  namespace: default
-#spec:
-#  storageClassName: csi-rbd-sc
-#  accessModes:
-#   - ReadWriteOnce
-#  resources:
-#    requests:
-#      storage: 20Gi
-#---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

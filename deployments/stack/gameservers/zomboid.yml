@@ -1,73 +1,53 @@
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: zomboid-udp
-  annotations:
-    metallb.universe.tf/allow-shared-ip: "shared-192.168.1.215"
-spec:
-  #externalTrafficPolicy: Local
-  #internalTrafficPolicy: Local
-  #allocateLoadBalancerNodePorts: true
-  selector:
-    app: zomboid
-  ports:
-    - name: zomboid-8766u
-      port: 8766
-      protocol: UDP
-      targetPort: zomboid-8766u
-    - name: zomboid-8767u
-      port: 8767
-      protocol: UDP
-      targetPort: zomboid-8767u
-    - name: zomboid-16261u
-      port: 16261
-      protocol: UDP
-      targetPort: zomboid-16261u
-    - port: 16262
-      name: zomboid-16262u
-      protocol: UDP
-      targetPort: zomboid-16262u
-  loadBalancerIP: 192.168.1.215
-  type: LoadBalancer
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: zomboid-tcp
-  labels:
-    app: zomboid
-  annotations:
-    metallb.universe.tf/allow-shared-ip: "shared-192.168.1.215"
-spec:
-  #externalTrafficPolicy: Local
-  #internalTrafficPolicy: Local
-  #allocateLoadBalancerNodePorts: true
-  selector:
-    app: zomboid
-  ports:
-    - name: zomboid-8766t
-      port: 8766
-      protocol: TCP
-      targetPort: zomboid-8766t
-    - name: zomboid-8767t
-      port: 8767
-      protocol: TCP
-      targetPort: zomboid-8767t
-    - name: zomboid-16261t
-      port: 16261
-      protocol: TCP
-      targetPort: zomboid-16261t
-    - name: zomboid-16262t
-      port: 16262
-      protocol: TCP
-      targetPort: zomboid-16262t
-    - name: zomboid-27015t
-      port: 27015
-      protocol: TCP
-      targetPort: zomboid-27015t
-  loadBalancerIP: 192.168.1.215
-  type: LoadBalancer
+#---
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: zomboid
+#spec:
+#  externalTrafficPolicy: Local
+#  internalTrafficPolicy: Local
+#  allocateLoadBalancerNodePorts: true
+#  selector:
+#    app: zomboid
+#  ports:
+#    - name: zomboid-8766u
+#      port: 8766
+#      protocol: UDP
+#      targetPort: zomboid-8766u
+#    - name: zomboid-8767u
+#      port: 8767
+#      protocol: UDP
+#      targetPort: zomboid-8767u
+#    - name: zomboid-16261u
+#      port: 16261
+#      protocol: UDP
+#      targetPort: zomboid-16261u
+#    - port: 16262
+#      name: zomboid-16262u
+#      protocol: UDP
+#      targetPort: zomboid-16262u
+#    - name: zomboid-8766t
+#      port: 8766
+#      protocol: TCP
+#      targetPort: zomboid-8766t
+#    - name: zomboid-8767t
+#      port: 8767
+#      protocol: TCP
+#      targetPort: zomboid-8767t
+#    - name: zomboid-16261t
+#      port: 16261
+#      protocol: TCP
+#      targetPort: zomboid-16261t
+#    - name: zomboid-16262t
+#      port: 16262
+#      protocol: TCP
+#      targetPort: zomboid-16262t
+#    - name: zomboid-27015t
+#      port: 27015
+#      protocol: TCP
+#      targetPort: zomboid-27015t
+#  loadBalancerIP: 192.168.1.215
+#  type: LoadBalancer
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -77,8 +57,8 @@ spec:
   selector:
     matchLabels:
       app: zomboid # has to match .spec.template.metadata.labels
-  serviceName: "zomboid"
-  replicas: 1
+  #serviceName: "zomboid"
+  replicas: 0
   template:
     metadata:
       labels:
@@ -100,15 +80,19 @@ spec:
             protocol: UDP
           - name: zomboid-16261u
             containerPort: 16261
+            hostPort: 16261
             protocol: UDP
           - name: zomboid-16261t
             containerPort: 16261
+            hostPort: 16261
             protocol: TCP
           - name: zomboid-16262u
             containerPort: 16262
+            hostPort: 16262
             protocol: UDP
           - name: zomboid-16262t
             containerPort: 16262
+            hostPort: 16262
             protocol: TCP
           - name: zomboid-27015t
             containerPort: 27015

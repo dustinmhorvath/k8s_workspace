@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spaceengineers
+spec:
+  selector:
+    matchLabels:
+      app: spaceengineers # has to match .spec.template.metadata.labels
+  #serviceName: "spaceengineers"
+  replicas: 0
+  template:
+    metadata:
+      labels:
+        app: spaceengineers # has to match .spec.selector.matchLabels
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: spaceengineers
+        image: nyouko/space-engineers:latest
+        imagePullPolicy: Always
+        ports:
+          - name: eng-27016u
+            containerPort: 27016
+            protocol: UDP
+          - name: eng-8766u
+            containerPort: 8766
+            protocol: UDP
+        env:
+        - name: INSTANCE_NAME
+          value: "ILG"
+        - name: WORLD_NAME
+          value: "ILG"
+        - name: WINEDEBUG
+          value: "-all"
+        - name: EXPERIMENTALMODE
+          value: "false"
+        - name: PUBLIC_IP
+          value: "external.perihelion.host"
+        volumeMounts:
+        - name: spaceengineers-plugins
+          mountPath: /mnt/plugins
+        - name: spaceengineers-instances
+          mountPath: /mnt/instances
+        - name: spaceengineers-dedicated
+          mountPath: /mnt/SpaceEngineersDedicated
+        - name: spaceengineers-steamcmd
+          mountPath: /home/authorizeduser/Steam
+  volumeClaimTemplates:
+    - metadata:
+        name: spaceengineers-plugins
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: csi-rbd-sc
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: spaceengineers-instances
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: csi-rbd-sc
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: spaceengineers-dedicated
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: csi-rbd-sc
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: spaceengineers-steamcmd
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: csi-rbd-sc
+        resources:
+          requests:
+            storage: 10Gi
