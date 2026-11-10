@@ -1,0 +1,66 @@
+# LLDAP Helm values
+# Chart: lldap-kubernetes/lldap-chart
+
+secret:
+  lldapBaseDn: "dc=ldap,dc=perihelion,dc=host"
+  name: lldap-credentials
+  create: false
+  useExisting: true
+
+persistence:
+  enabled: true
+  existingVolumeClaim: ""
+  storageClassName: "" # Use the cluster default StorageClass
+  storageSize: 1Gi
+  accessMode: ReadWriteOnce
+  manualProvision: false
+
+env:
+  TZ: "America/Chicago"
+  UID: "1001"
+  GID: "1001"
+  LDAPS_OPTIONS__ENABLED: false
+
+# No need for LDAPS initially; keep the key seed configuration active.
+certmanager:
+  enabled: false
+
+replicaCount: 1
+
+image:
+  repository: "nitnelave/lldap"
+  pullPolicy: IfNotPresent
+  # Chart defaults to appVersion v0.6.2 if tag is omitted.
+
+hpa:
+  enabled: false
+
+service:
+  name: lldap-service
+  type: ClusterIP
+  ports:
+    ldap: 3890
+    ldaps: 6360
+    web: 17170
+
+ingress:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+probes:
+  enabled: true
+
+serviceAccount:
+  create: true
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+

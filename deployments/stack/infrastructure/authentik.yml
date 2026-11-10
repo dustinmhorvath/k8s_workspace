@@ -1,3 +1,4 @@
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -12,10 +13,10 @@ spec:
     helm:
       releaseName: authentik
       valueFiles:
-      - $authentik_values/deployments/stack/infrastructure/authentik_answers.yml
+      - $base_url/deployments/stack/infrastructure/authentik_answers.yml
   - repoURL: 'https://github.com/dustinmhorvath/k8s_workspace.git'
     targetRevision: main
-    ref: authentik_values
+    ref: base_url
 
   destination:
     server: "https://kubernetes.default.svc"

@@ -1,0 +1,235 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: lldap
+  namespace: argocd
+spec:
+  project: default
+  sources:
+  - chart: lldap
+    repoURL: https://evantage-ws.github.io/lldap-kubernetes/
+    targetRevision: 0.4.*
+    helm:
+      releaseName: lldap
+      valueFiles:
+      - $base_url/deployments/stack/infrastructure/lldap_answers.yml
+  - repoURL: 'https://github.com/dustinmhorvath/k8s_workspace.git'
+    targetRevision: main
+    ref: base_url
+
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: lldap
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    automated:
+      selfHeal: true
+      prune: true
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lldap-cleanup
+  namespace: lldap
+data:
+  cleanup.py: |
+    import json
+    import os
+    import sys
+    from datetime import datetime, timedelta, timezone
+    from urllib.request import Request, urlopen
+    from urllib.error import HTTPError, URLError
+
+    BASE_URL = os.environ["LLDAP_URL"].rstrip("/")
+    USERNAME = os.environ["LLDAP_USERNAME"]
+    PASSWORD = os.environ["LLDAP_PASSWORD"]
+    MIN_AGE_HOURS = int(os.environ.get("MIN_USER_AGE_HOURS", "24"))
+    DRY_RUN = os.environ.get("DRY_RUN", "true").lower() == "true"
+
+    def post(url, payload, token=None):
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        body = json.dumps(payload).encode("utf-8")
+        request = Request(url, data=body, headers=headers, method="POST")
+
+        with urlopen(request, timeout=30) as response:
+            return json.loads(response.read())
+
+    def graphql(query, variables=None, token=None):
+        result = post(
+            f"{BASE_URL}/api/graphql",
+            {"query": query, "variables": variables or {}},
+            token,
+        )
+        if result.get("errors"):
+            raise RuntimeError(f"GraphQL errors: {result['errors']}")
+        return result["data"]
+
+    print(f"LLDAP cleanup starting (dry-run={DRY_RUN})")
+
+    # Authenticate to LLDAP.
+    login = post(
+        f"{BASE_URL}/auth/simple/login",
+        {"username": USERNAME, "password": PASSWORD},
+    )
+    token = login.get("token")
+    if not token:
+        raise RuntimeError("LLDAP login did not return a token")
+
+    # Fetch users and their creation dates.
+    data = graphql(
+        """
+        query {
+          users {
+            id
+            creationDate
+          }
+        }
+        """,
+        token=token,
+    )
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=MIN_AGE_HOURS)
+
+    candidates = []
+    for user in data["users"]:
+        user_id = user["id"]
+
+        # Never delete the configured administrator.
+        if user_id == USERNAME:
+            continue
+
+        created = datetime.fromisoformat(
+            user["creationDate"].replace("Z", "+00:00")
+        )
+
+        if created < cutoff:
+            candidates.append(user_id)
+
+    print(f"Found {len(candidates)} eligible user(s)")
+
+    delete_query = """
+      mutation DeleteUser($id: String!) {
+        deleteUser(userId: $id) {
+          ok
+        }
+      }
+    """
+
+    for user_id in candidates:
+        if DRY_RUN:
+            print(f"DRY RUN: would delete {user_id}")
+            continue
+
+        result = graphql(
+            delete_query,
+            variables={"id": user_id},
+            token=token,
+        )
+
+        if not result["deleteUser"]["ok"]:
+            raise RuntimeError(f"Deletion failed for {user_id}")
+
+        print(f"Deleted {user_id}")
+
+    print("LLDAP cleanup finished")
+
+---
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: lldap-cleanup
+  namespace: lldap
+spec:
+  schedule: "17 */6 * * *"
+  timeZone: "America/Chicago"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 1800
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 86400
+
+      template:
+        spec:
+          restartPolicy: Never
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+
+          containers:
+            - name: cleanup
+              image: python:3.13-alpine
+              imagePullPolicy: IfNotPresent
+
+              command:
+                - python
+                - /scripts/cleanup.py
+
+              env:
+                - name: LLDAP_URL
+                  value: "http://lldap-service.lldap.svc.cluster.local:17170"
+
+                - name: LLDAP_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: lldap-credentials
+                      key: lldap-ldap-user-name
+
+                - name: LLDAP_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: lldap-credentials
+                      key: lldap-ldap-user-pass
+
+                - name: MIN_USER_AGE_HOURS
+                  value: "24"
+
+                # Leave true until you've verified the behavior.
+                - name: DRY_RUN
+                  value: "true"
+
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+                  readOnly: true
+
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+
+          volumes:
+            - name: script
+              configMap:
+                name: lldap-cleanup
+                defaultMode: 0444
+
