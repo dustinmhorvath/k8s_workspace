@@ -205,11 +205,10 @@ spec:
                       key: lldap-ldap-user-pass
 
                 - name: MIN_USER_AGE_HOURS
-                  value: "24"
+                  value: "6"
 
-                # Leave true until you've verified the behavior.
                 - name: DRY_RUN
-                  value: "true"
+                  value: "false"
 
                 - name: PYTHONDONTWRITEBYTECODE
                   value: "1"
