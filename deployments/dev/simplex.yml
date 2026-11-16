@@ -23,9 +23,9 @@ spec:
     app: simplex-xftp
   ports:
     - name: simplex-xftp
-      port: 443
+      port: 4443
       protocol: TCP
-      targetPort: 443
+      targetPort: 4443
   loadBalancerIP: 192.168.1.214
   type: LoadBalancer
 ---
@@ -169,7 +169,7 @@ spec:
         image: simplexchat/xftp-server:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 443
+        - containerPort: 4443
           protocol: TCP
         env:
         - name: ADDR
@@ -297,7 +297,7 @@ spec:
           service:
             name: simplex-xftp
             port:
-              number: 443
+              number: 4443
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
