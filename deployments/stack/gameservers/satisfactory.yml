@@ -103,6 +103,8 @@ spec:
           value: "60"
         - name: TIMEOUT
           value: "120"
+        - name: VMOVERRIDE
+          value: "true"
         volumeMounts:
         - name: satisfactory-config
           mountPath: /config/
